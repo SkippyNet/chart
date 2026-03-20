@@ -493,6 +493,7 @@ select option{background:var(--s2);}
   <button class="btn" onclick="doZoom(.83)">－</button>
   <button class="btn" onclick="fitView()">⊞ Fit</button>
   <div class="spc"></div>
+  <button class="btn" id="route-btn" title="Toggle all edges: Bezier ↔ Ortho" onclick="toggleRouteMode()">⌐ Bezier</button>
   <button class="btn" onclick="openPrefs()">⚙ Prefs</button>
   <button class="btn" onclick="openSaveModal()">💾 Save</button>
   <button class="btn" onclick="openSaveModal('load')">📂 Load</button>
@@ -772,6 +773,8 @@ select option{background:var(--s2);}
       </div>
 
       <div id="edge-props" style="display:none;flex-direction:column;gap:6px">
+        <div class="pr"><div class="pl">From</div><select class="pi" id="e-from" onchange="redirectEdge('from',this.value)" style="font-size:11px"></select></div>
+        <div class="pr"><div class="pl">To</div><select class="pi" id="e-to" onchange="redirectEdge('to',this.value)" style="font-size:11px"></select></div>
         <div class="pr"><div class="pl">Label</div><input class="pi" id="e-lbl" type="text" oninput="liveE('label',this.value)"></div>
         <div class="pr"><div class="pl">Color</div>
           <div class="crow"><input type="color" class="csw" id="e-col" oninput="syncH('e-col','e-col-h');liveE('color',this.value)">
@@ -1403,7 +1406,7 @@ function mkEdge(o={}){
   const e={id:'e'+(++eid),from:o.from,to:o.to,fromP:fp,toP:tp,
     label:o.label||'',color:o.color||(window.PREFS?.ecolor||'#6366f1'),sty:o.sty||(window.PREFS?.estyle||'solid'),arr:o.arr||(window.PREFS?.earr||'fwd'),w:o.w||(window.PREFS?.ew||2),
     erMarkStart:o.erMarkStart||null,erMarkEnd:o.erMarkEnd||null,
-    route:o.route||'bezier',waypoints:o.waypoints||[]};
+    route:o.route||(window.PREFS?.eroute||'bezier'),waypoints:o.waypoints||[]};
   edges.push(e);renderEdge(e);pushUndo();return e;
 }
 // ── Edge bezier helpers ──────────────────────────────────────
@@ -1504,6 +1507,58 @@ function pathWithBridges(e,crossTValues,bgCol){
   return d;
 }
 // Extract a sub-cubic bezier from t0 to t1 and return SVG path continuation
+function pathWithOrthoBridges(pathD, {pts}, crossData){
+  // Insert small semicircular bumps at crossing points on an orthogonal path.
+  // Works by rebuilding the path segment-by-segment, and when a crossing
+  // point lies on a segment, splitting it with an arc.
+  if(!pts||pts.length<2) return pathD;
+  const BRIDGE=8; // bump radius in px
+
+  // Collect crossing xy points
+  const crosses=crossData.map(h=>({x:h.x,y:h.y}));
+
+  let d='';
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i],b=pts[i+1];
+    if(i===0) d+=`M ${a.x.toFixed(1)} ${a.y.toFixed(1)}`;
+
+    // Find all crossings on this segment, sorted by distance from a
+    const segLen=Math.hypot(b.x-a.x,b.y-a.y);
+    if(segLen<1){d+=` L ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;continue;}
+    const dx=(b.x-a.x)/segLen,dy=(b.y-a.y)/segLen;
+
+    const onSeg=crosses.filter(c=>{
+      // Project c onto segment ab
+      const t=((c.x-a.x)*dx+(c.y-a.y)*dy);
+      if(t<BRIDGE||t>segLen-BRIDGE) return false;
+      const px=a.x+t*dx,py=a.y+t*dy;
+      return Math.hypot(c.x-px,c.y-py)<4; // within 4px of segment
+    }).map(c=>{
+      const t=((c.x-a.x)*dx+(c.y-a.y)*dy);
+      return{t,x:a.x+t*dx,y:a.y+t*dy};
+    }).sort((p,q)=>p.t-q.t);
+
+    if(!onSeg.length){
+      d+=` L ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+      continue;
+    }
+
+    // Build segment with bumps
+    let cur=0;
+    onSeg.forEach(({t,x,y})=>{
+      const t0=t-BRIDGE,t1=t+BRIDGE;
+      const x0=a.x+t0*dx,y0=a.y+t0*dy;
+      const x1=a.x+t1*dx,y1=a.y+t1*dy;
+      d+=` L ${x0.toFixed(1)} ${y0.toFixed(1)}`;
+      // Arc bump: perpendicular to segment direction
+      const sweep=1; // always bump same direction for consistency
+      d+=` A ${BRIDGE} ${BRIDGE} 0 0 ${sweep} ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+    });
+    d+=` L ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+  }
+  return d;
+}
+
 function subCubic(f,c1x,c1y,c2x,c2y,end,t0,t1){
   // De Casteljau subdivision
   function bez(t){return bezierPt(f,c1x,c1y,c2x,c2y,t,end);}
@@ -1656,21 +1711,26 @@ function renderEdge(e){
 
   // Bridge detection (only for bezier)
   let finalPathD=pathD;
-  if(!e.route||e.route==='bezier'){
+  const isRoutedPath = !e.route||e.route==='bezier'||e.route==='ortho';
+  if(isRoutedPath){
     const myIdx=edges.indexOf(e);
-    const crossTs=[];
+    const crossData=[];
     for(let i=0;i<myIdx;i++){
       const hits=findCrossings(edges[i],e);
-      hits.forEach(h=>crossTs.push(h.tB));
+      hits.forEach(h=>crossData.push(h));
     }
-    if(crossTs.length>0){
+    if(crossData.length>0){
       const bgClr=exportBg&&exportBg!=='transparent'?exportBg:'#0f1117';
       const ko=document.createElementNS('http://www.w3.org/2000/svg','path');
       ko.setAttribute('d',pathD);ko.setAttribute('fill','none');
       ko.setAttribute('stroke',bgClr);ko.setAttribute('stroke-width',e.w+7);
       ko.setAttribute('stroke-linecap','round');
       grp.appendChild(ko);
-      finalPathD=pathWithBridges(e,crossTs,bgClr);
+      if(e.route==='ortho'){
+        finalPathD=pathWithOrthoBridges(pathD,{pts},crossData);
+      } else {
+        finalPathD=pathWithBridges(e,crossData.map(h=>h.tB),bgClr);
+      }
     }
   }
 
@@ -1759,6 +1819,21 @@ function renderEdge(e){
   // Waypoint handles when edge is selected
   if(selEdgeId===e.id){
     const wps=e.waypoints||[];
+
+    // ── Draggable endpoint handles ──────────────────────────────────────
+    [{pt:pXY(e.from,e.fromP),field:'from'},{pt:pXY(e.to,e.toP),field:'to'}].forEach(({pt,field})=>{
+      const h=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      h.setAttribute('cx',pt.x);h.setAttribute('cy',pt.y);h.setAttribute('r',7);
+      h.setAttribute('fill',field==='from'?'#22c55e':'#ef4444');
+      h.setAttribute('stroke','#fff');h.setAttribute('stroke-width',2);
+      h.style.cursor='crosshair';
+      h.addEventListener('pointerdown',ev=>{
+        ev.stopPropagation();ev.preventDefault();
+        h.setPointerCapture(ev.pointerId);
+        startEndpointDrag(e.id,field,ev);
+      });
+      grp.appendChild(h);
+    });
 
     // ── Draggable waypoint dots ─────────────────────────────────────────
     wps.forEach((wp,idx)=>{
@@ -1861,6 +1936,13 @@ function updateProps(){
   } else if(selEdgeId){
     const e=edges.find(e=>e.id===selEdgeId);
     ns.style.display='none';np.style.display='none';ep.style.display='flex';ep.style.flexDirection='column';
+    // Populate From/To node selectors
+    ['e-from','e-to'].forEach(sid=>{
+      const sel=document.getElementById(sid);
+      if(!sel)return;
+      const cur=sid==='e-from'?e.from:e.to;
+      sel.innerHTML=Object.values(nodes).filter(n=>n.shape!=='group').map(n=>`<option value="${n.id}"${n.id===cur?' selected':''}>${n.label||n.id}</option>`).join('');
+    });
     document.getElementById('e-lbl').value=e.label;setC('e-col','e-col-h',e.color);
     document.getElementById('e-sty').value=e.sty;document.getElementById('e-arr').value=e.arr;document.getElementById('e-w').value=e.w;
     // Routing buttons
@@ -3874,16 +3956,16 @@ function liveReqField(field,val){const n=getSelReqNode();if(!n)return;if(field==
 function reRenderReqNode(n){const PROP_H=20,HDR_H=36,PAD=8;const props=Object.entries(n.reqData.props||{});n.h=Math.max(60,HDR_H+(props.length?props.length*PROP_H+PAD:PAD));n.w=Math.max(n.w,Math.max(180,n.reqData.name.length*8+40,...props.map(([k,v])=>(k+': '+v).length*7+20)));renderNode(n);rerenderEdges();}
 
 const PREFS_LS_KEY='chartcraft_prefs';
-const PREFS_DEFAULTS={fill:'#1e2235',stroke:'#6366f1',tc:'#f1f5f9',fs:13,bw:2,bdash:'solid',shape:'rect',w:140,h:50,ecolor:'#6366f1',estyle:'solid',earr:'fwd',ew:2,skcolor:'#6366f1',sksize:40,expbg:'#0f1117',expscale:2,snap:10,guide:6};
+const PREFS_DEFAULTS={fill:'#1e2235',stroke:'#6366f1',tc:'#f1f5f9',fs:13,bw:2,bdash:'solid',shape:'rect',w:140,h:50,ecolor:'#6366f1',estyle:'solid',earr:'fwd',ew:2,eroute:'bezier',skcolor:'#6366f1',sksize:40,expbg:'#0f1117',expscale:2,snap:10,guide:6};
 let PREFS={...PREFS_DEFAULTS};
 function loadPrefs(){try{const s=localStorage.getItem(PREFS_LS_KEY);if(s)PREFS={...PREFS_DEFAULTS,...JSON.parse(s)};}catch(e){PREFS={...PREFS_DEFAULTS};}applyPrefsToRuntime();}
-function applyPrefsToRuntime(){window._SNAP=PREFS.snap||10;window._GUIDE_THRESH=PREFS.guide||6;const skc=document.getElementById('sk-color');if(skc&&/^#[0-9a-fA-F]{6}$/.test(PREFS.skcolor))skc.value=PREFS.skcolor;const sks=document.getElementById('sk-size-range');if(sks){sks.value=PREFS.sksize||40;const sv=document.getElementById('sk-size-val');if(sv)sv.textContent=sks.value;}if(PREFS.expbg)exportBg=PREFS.expbg;}
+function applyPrefsToRuntime(){window._SNAP=PREFS.snap||10;window._GUIDE_THRESH=PREFS.guide||6;const skc=document.getElementById('sk-color');if(skc&&/^#[0-9a-fA-F]{6}$/.test(PREFS.skcolor))skc.value=PREFS.skcolor;const sks=document.getElementById('sk-size-range');if(sks){sks.value=PREFS.sksize||40;const sv=document.getElementById('sk-size-val');if(sv)sv.textContent=sks.value;}if(PREFS.expbg)exportBg=PREFS.expbg;if(PREFS.eroute){edges.forEach(e=>{if(!e._routeLocked){e.route=PREFS.eroute;}});rerenderEdges();updateRouteBtn();}}
 let currentPrefsTab='nodes';
 function openPrefs(){populatePrefsForm();buildPalettes();previewPrefs();document.getElementById('prefs-modal').classList.add('open');}
 function closePrefs(){document.getElementById('prefs-modal').classList.remove('open');}
 function prefsTab(tab){currentPrefsTab=tab;document.querySelectorAll('.ptab').forEach((b,i)=>{const tabs=['nodes','edges','skittles','canvas','advanced'];b.classList.toggle('on',tabs[i]===tab);});['nodes','edges','skittles','canvas','advanced'].forEach(t=>{const el=document.getElementById('ptab-'+t);if(el){el.style.display=t===tab?'flex':'none';if(t===tab)el.style.flexDirection='column';}});previewPrefs();}
-function populatePrefsForm(){const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val;};const sc=(cid,hid,val)=>{const v=/^#[0-9a-fA-F]{6}$/.test(val)?val:'#000000';set(cid,v);set(hid,val);};sc('pref-fill','pref-fill-h',PREFS.fill);sc('pref-stroke','pref-stroke-h',PREFS.stroke);sc('pref-tc','pref-tc-h',PREFS.tc);set('pref-fs',PREFS.fs);set('pref-bw',PREFS.bw);set('pref-bdash',PREFS.bdash);set('pref-shape',PREFS.shape);set('pref-w',PREFS.w);set('pref-h',PREFS.h);sc('pref-ecol','pref-ecol-h',PREFS.ecolor);set('pref-esty',PREFS.estyle);set('pref-earr',PREFS.earr);set('pref-ew',PREFS.ew);sc('pref-skcol','pref-skcol-h',PREFS.skcolor);set('pref-sksize',PREFS.sksize);sc('pref-expbg','pref-expbg-h',PREFS.expbg);set('pref-expscale',PREFS.expscale);set('pref-snap',PREFS.snap);set('pref-guide',PREFS.guide);}
-function readPrefsForm(){const g=id=>document.getElementById(id)?.value;return{fill:g('pref-fill')||PREFS.fill,stroke:g('pref-stroke')||PREFS.stroke,tc:g('pref-tc')||PREFS.tc,fs:parseFloat(g('pref-fs'))||13,bw:parseFloat(g('pref-bw'))||2,bdash:g('pref-bdash')||'solid',shape:g('pref-shape')||'rect',w:parseInt(g('pref-w'))||140,h:parseInt(g('pref-h'))||50,ecolor:g('pref-ecol')||'#6366f1',estyle:g('pref-esty')||'solid',earr:g('pref-earr')||'fwd',ew:parseFloat(g('pref-ew'))||2,skcolor:g('pref-skcol')||'#6366f1',sksize:parseInt(g('pref-sksize'))||40,expbg:g('pref-expbg')||'#0f1117',expscale:parseInt(g('pref-expscale'))||2,snap:parseInt(g('pref-snap'))||10,guide:parseInt(g('pref-guide'))||6};}
+function populatePrefsForm(){const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val;};const sc=(cid,hid,val)=>{const v=/^#[0-9a-fA-F]{6}$/.test(val)?val:'#000000';set(cid,v);set(hid,val);};sc('pref-fill','pref-fill-h',PREFS.fill);sc('pref-stroke','pref-stroke-h',PREFS.stroke);sc('pref-tc','pref-tc-h',PREFS.tc);set('pref-fs',PREFS.fs);set('pref-bw',PREFS.bw);set('pref-bdash',PREFS.bdash);set('pref-shape',PREFS.shape);set('pref-w',PREFS.w);set('pref-h',PREFS.h);sc('pref-ecol','pref-ecol-h',PREFS.ecolor);set('pref-esty',PREFS.estyle);set('pref-earr',PREFS.earr);set('pref-ew',PREFS.ew);set('pref-eroute',PREFS.eroute||'bezier');sc('pref-skcol','pref-skcol-h',PREFS.skcolor);set('pref-sksize',PREFS.sksize);sc('pref-expbg','pref-expbg-h',PREFS.expbg);set('pref-expscale',PREFS.expscale);set('pref-snap',PREFS.snap);set('pref-guide',PREFS.guide);}
+function readPrefsForm(){const g=id=>document.getElementById(id)?.value;return{fill:g('pref-fill')||PREFS.fill,stroke:g('pref-stroke')||PREFS.stroke,tc:g('pref-tc')||PREFS.tc,fs:parseFloat(g('pref-fs'))||13,bw:parseFloat(g('pref-bw'))||2,bdash:g('pref-bdash')||'solid',shape:g('pref-shape')||'rect',w:parseInt(g('pref-w'))||140,h:parseInt(g('pref-h'))||50,ecolor:g('pref-ecol')||'#6366f1',estyle:g('pref-esty')||'solid',earr:g('pref-earr')||'fwd',ew:parseFloat(g('pref-ew'))||2,eroute:g('pref-eroute')||'bezier',skcolor:g('pref-skcol')||'#6366f1',sksize:parseInt(g('pref-sksize'))||40,expbg:g('pref-expbg')||'#0f1117',expscale:parseInt(g('pref-expscale'))||2,snap:parseInt(g('pref-snap'))||10,guide:parseInt(g('pref-guide'))||6};}
 function savePrefs(){PREFS=readPrefsForm();localStorage.setItem(PREFS_LS_KEY,JSON.stringify(PREFS));applyPrefsToRuntime();closePrefs();toast('Preferences saved');}
 function resetPrefs(){if(!confirm('Reset all preferences to defaults?'))return;PREFS={...PREFS_DEFAULTS};localStorage.removeItem(PREFS_LS_KEY);populatePrefsForm();applyPrefsToRuntime();previewPrefs();toast('Reset to defaults');}
 function exportTheme(){const p=readPrefsForm();const data=JSON.stringify({_type:'chartcraft-theme',_version:1,_created:new Date().toISOString(),...p},null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='team-theme.cctheme';a.click();toast('Theme exported');}
@@ -3892,7 +3974,7 @@ function previewPrefs(){const p=readPrefsForm();const np=document.getElementById
 function syncPrefColor(pickerId,hexId){const picker=document.getElementById(pickerId);const hex=document.getElementById(hexId);if(!picker||!hex)return;if(document.activeElement===picker)hex.value=picker.value;else if(/^#[0-9a-fA-F]{6}$/.test(hex.value))picker.value=hex.value;previewPrefs();}
 const THEME_PALETTES=[{name:'Indigo',fill:'#1e2235',stroke:'#6366f1',tc:'#f1f5f9'},{name:'Green',fill:'#0f2e1e',stroke:'#22c55e',tc:'#f0fdf4'},{name:'Red',fill:'#2e0f0e',stroke:'#ef4444',tc:'#fff1f2'},{name:'Purple',fill:'#1e1540',stroke:'#a855f7',tc:'#faf5ff'},{name:'Yellow',fill:'#2a2100',stroke:'#eab308',tc:'#fefce8'},{name:'Cyan',fill:'#052e36',stroke:'#06b6d4',tc:'#ecfeff'},{name:'Slate',fill:'#1e293b',stroke:'#94a3b8',tc:'#f8fafc'},{name:'Dark',fill:'#0f1117',stroke:'#2e3350',tc:'#94a3b8'},{name:'Light',fill:'#f8fafc',stroke:'#64748b',tc:'#1e293b'},{name:'Navy',fill:'#0f1a2e',stroke:'#4f8ef7',tc:'#e8ecf5'}];
 function buildPalettes(){const wrap=document.getElementById('pref-palettes');if(!wrap)return;wrap.innerHTML='';THEME_PALETTES.forEach(p=>{const b=document.createElement('button');b.title=p.name;b.style.cssText='background:'+p.fill+';border:2px solid '+p.stroke+';color:'+p.tc+';font-family:Inter,sans-serif;font-size:10px;font-weight:600;padding:5px 10px;border-radius:5px;cursor:pointer;white-space:nowrap;';b.textContent=p.name;b.onclick=()=>{['pref-fill','pref-fill-h'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=p.fill;});['pref-stroke','pref-stroke-h'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=p.stroke;});['pref-tc','pref-tc-h'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=p.tc;});previewPrefs();};wrap.appendChild(b);});}
-function initPrefs(){loadPrefs();}
+function initPrefs(){loadPrefs();updateRouteBtn();}
 function setTaBtn(v){['left','center','right'].forEach(a=>{const b=document.getElementById('ta-'+a);if(b){b.style.borderColor=a===v?'var(--ac)':'';b.style.color=a===v?'var(--ac)':'';}});}
 function setTvBtn(v){const map={top:'top',middle:'mid',bottom:'bot'};['top','middle','bottom'].forEach(a=>{const b=document.getElementById('tv-'+map[a]);if(b){b.style.borderColor=a===v?'var(--ac)':'';b.style.color=a===v?'var(--ac)':'';}});}
 
@@ -4212,6 +4294,7 @@ function clearWaypoints(){
         <div class="pgroup-title">Default Edge Style</div>
         <div class="prow"><span class="plabel">Color</span><input type="color" class="pcolor" id="pref-ecol" value="#6366f1" oninput="previewPrefs()"><input class="pinput" id="pref-ecol-h" type="text" value="#6366f1" oninput="syncPrefColor('pref-ecol','pref-ecol-h')"></div>
         <div class="prow"><span class="plabel">Line Style</span><select class="pselect" id="pref-esty"><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></div>
+        <div class="prow"><span class="plabel">Routing</span><select class="pselect" id="pref-eroute" onchange="previewPrefs()"><option value="bezier">Bezier (curved)</option><option value="ortho">Orthogonal</option></select></div>
         <div class="prow"><span class="plabel">Arrow</span><select class="pselect" id="pref-earr"><option value="fwd">→ Forward</option><option value="both">↔ Both</option><option value="none">─ None</option></select></div>
         <div class="prow"><span class="plabel">Width</span><input class="pinput" id="pref-ew" type="number" value="2" min=".5" max="10" step=".5"></div>
       </div>
@@ -5290,5 +5373,104 @@ function applyKanbanDiagram(code) {
   }
   closeSed();
   toast('Kanban board placed!');
+}
+
+function updateRouteBtn(){
+  const btn=document.getElementById('route-btn');
+  if(!btn)return;
+  const r=PREFS.eroute||'bezier';
+  btn.textContent = r==='ortho' ? '⊢ Ortho' : '⌐ Bezier';
+  btn.classList.toggle('on', r==='ortho');
+}
+function toggleRouteMode(){
+  PREFS.eroute = (PREFS.eroute||'bezier')==='bezier' ? 'ortho' : 'bezier';
+  localStorage.setItem('cc_prefs', JSON.stringify(PREFS));
+  // Update all non-locked edges
+  edges.forEach(e=>{ if(!e._routeLocked) e.route=PREFS.eroute; });
+  rerenderEdges();
+  updateRouteBtn();
+  // Sync the prefs modal select if open
+  const sel=document.getElementById('pref-eroute');
+  if(sel) sel.value=PREFS.eroute;
+}
+
+function redirectEdge(field, newNodeId){
+  const e=edges.find(e=>e.id===selEdgeId);
+  if(!e||!nodes[newNodeId])return;
+  e[field]=newNodeId;
+  const[fp,tp]=bestPorts(e.from,e.to);
+  e.fromP=fp;e.toP=tp;
+  e.waypoints=[];  // clear waypoints since path has changed
+  renderEdge(e);
+  pushUndo();
+}
+
+let _epDrag=null;
+
+function startEndpointDrag(edgeId,field,ev){
+  _epDrag={edgeId,field};
+  document.addEventListener('pointermove',_onEpMove);
+  document.addEventListener('pointerup',_onEpUp);
+}
+
+function _onEpMove(ev){
+  if(!_epDrag)return;
+  const e=edges.find(e=>e.id===_epDrag.edgeId);
+  if(!e)return;
+  const cp=s2c(ev.clientX,ev.clientY);
+  // Find closest node under cursor
+  let best=null,bestD=Infinity;
+  Object.values(nodes).forEach(n=>{
+    if(n.shape==='group')return;
+    const d=Math.hypot(cp.x-(n.x+n.w/2),cp.y-(n.y+n.h/2));
+    if(d<bestD){bestD=d;best=n;}
+  });
+  // Ghost indicator
+  let ghost=document.getElementById('ep-drag-ghost');
+  if(!ghost){
+    ghost=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ghost.id='ep-drag-ghost';ghost.setAttribute('fill','none');
+    ghost.setAttribute('stroke-width',2);ghost.setAttribute('stroke-dasharray','4,3');
+    document.getElementById('esvg').appendChild(ghost);
+  }
+  if(best&&bestD<80){
+    ghost.setAttribute('cx',best.x+best.w/2);ghost.setAttribute('cy',best.y+best.h/2);
+    ghost.setAttribute('r',Math.max(best.w,best.h)/2+8);
+    ghost.setAttribute('stroke','#22c55e');
+  } else {
+    ghost.setAttribute('cx',cp.x);ghost.setAttribute('cy',cp.y);
+    ghost.setAttribute('r',12);ghost.setAttribute('stroke','#6366f1');
+  }
+}
+
+function _onEpUp(ev){
+  if(!_epDrag)return;
+  document.removeEventListener('pointermove',_onEpMove);
+  document.removeEventListener('pointerup',_onEpUp);
+  const ghost=document.getElementById('ep-drag-ghost');
+  if(ghost)ghost.remove();
+  const e=edges.find(e=>e.id===_epDrag.edgeId);
+  if(e){
+    const cp=s2c(ev.clientX,ev.clientY);
+    let best=null,bestD=Infinity;
+    Object.values(nodes).forEach(n=>{
+      if(n.shape==='group')return;
+      const d=Math.hypot(cp.x-(n.x+n.w/2),cp.y-(n.y+n.h/2));
+      if(d<bestD){bestD=d;best=n;}
+    });
+    if(best&&bestD<80){
+      e[_epDrag.field]=best.id;
+      const[fp,tp]=bestPorts(e.from,e.to);
+      e.fromP=fp;e.toP=tp;
+      e.waypoints=[];
+      renderEdge(e);
+      const sel=document.getElementById('e-'+_epDrag.field);
+      if(sel)sel.value=best.id;
+      pushUndo();
+    } else {
+      renderEdge(e);
+    }
+  }
+  _epDrag=null;
 }
 </script>
