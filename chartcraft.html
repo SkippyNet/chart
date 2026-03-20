@@ -2387,7 +2387,7 @@ function parseFlow(lines){
       const rightRaw = em[4].trim();
       // rightRaw may itself be "B[label] --> C --> D" — extract just the first token
       // Split on the arrow pattern to get the first node token
-      const rightSplit = rightRaw.match(/^(.+?)\s*(?:--?>>\.│==+>|-.->|--?>|--?x|--?o|--?-+>|===)/);
+      const rightSplit = rightRaw.match(/^(.+?)\s*(?:--?\.>>|==+>|-.->|--?>|--?x|--?o|--?-+>|===)/);
       const rightTok = rightSplit ? rightSplit[1].trim() : rightRaw;
       const fn = chainFrom || gn(leftTok);
       const tn = gn(rightTok);
