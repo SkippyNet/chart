@@ -2010,12 +2010,27 @@ const SG_COLORS=[
 
 function drawSubgraphBoxes(subgraphs, nm){
   clearSubgraphBoxes();
-  subgraphs.forEach((sg,idx)=>{
-    if(!sg.nodeIds.length) return;
-    const sgNodes=sg.nodeIds.map(id=>nm[id]||nodes[id]).filter(Boolean);
+  // Build child->descendants map so outer boxes encompass inner boxes
+  const sgById = {};
+  subgraphs.forEach(sg => sgById[sg.id]=sg);
+  function allDescendantNodeIds(sg){
+    const ids=[...sg.nodeIds];
+    subgraphs.forEach(child=>{if(child.parentId===sg.id)ids.push(...allDescendantNodeIds(child));});
+    return ids;
+  }
+  // Draw children before parents so parents render on top (outer frame last)
+  const drawOrder=[...subgraphs].sort((a,b)=>{
+    // deeper nesting first
+    function depth(sg){let d=0,cur=sg;while(cur.parentId){cur=sgById[cur.parentId];d++;}return d;}
+    return depth(b)-depth(a);
+  });
+  drawOrder.forEach((sg,idx)=>{
+    const allIds=allDescendantNodeIds(sg);
+    if(!allIds.length) return;
+    const sgNodes=allIds.map(id=>nm[id]||nodes[id]).filter(Boolean);
     if(!sgNodes.length) return;
-    const col=SG_COLORS[idx%SG_COLORS.length];
-    const PAD=28;
+    const col=SG_COLORS[subgraphs.indexOf(sg)%SG_COLORS.length];
+    const PAD=sg.parentId ? 18 : 28;  // tighter padding for nested frames
     const x =Math.min(...sgNodes.map(n=>n.x))-PAD;
     const y =Math.min(...sgNodes.map(n=>n.y))-PAD-20;
     const x2=Math.max(...sgNodes.map(n=>n.x+n.w))+PAD;
@@ -2206,7 +2221,7 @@ function parseFlow(lines){
     if(sgm){
       const sgId   = sgm[1].replace(/[^a-zA-Z0-9_]/g,'_');
       const sgLabel= sgm[2]||sgm[3]||sgm[1];
-      const sg={id:sgId, label:sgLabel, nodeIds:[]};
+      const sg={id:sgId, label:sgLabel, nodeIds:[], parentId: subStack.length ? subStack[subStack.length-1].id : null};
       subgraphs.push(sg);
       subStack.push(sg);
       curSub=sg;
@@ -2283,69 +2298,50 @@ function parseFlow(lines){
 function layoutFlow(allNodes, subgraphs, edgeDefs){
   if(!allNodes.length) return;
 
-  /*
-   * MERMAID-STYLE TD LAYOUT
-   *
-   * Global rank via DFS cycle-breaking + longest-path.
-   * Within each rank row, nodes are ordered by subgraph membership
-   * (subgraph nodes cluster together) then by barycenter of predecessors.
-   * Subgraph nodes are centered within their cluster column.
-   * After placing nodes, each subgraph's bounding box is computed for the frame.
-   */
-
   const NODE_W   = 160;
   const NODE_H   = 50;
-  const H_GAP    = 70;   // gap between nodes in same rank row
-  const V_GAP    = 90;   // gap between rank rows
-  const SG_XGAP  = 60;   // extra horizontal gap between subgraph clusters
+  const H_GAP    = 70;    // gap between nodes in same rank row
+  const V_GAP    = 90;    // gap between rank rows
+  const SG_XGAP  = 80;    // extra horizontal gap between different subgraph clusters in same row
+  const SG_PAD   = 44;    // subgraph frame padding (used by drawSubgraphBoxes)
   const ORIGIN_X = 80;
   const ORIGIN_Y = 60;
 
   const nodeMap = {};
   allNodes.forEach(n => nodeMap[n.id] = n);
 
-  // ── 1. DFS cycle-breaking ──────────────────────────────────
+  // ── 1. Iterative DFS cycle-breaking ───────────────────────
   const adjFull = {};
   allNodes.forEach(n => adjFull[n.id] = []);
   edgeDefs.forEach(({from,to}) => {
-    if(nodeMap[from] && nodeMap[to] && from!==to)
-      adjFull[from].push(to);
+    if(nodeMap[from] && nodeMap[to] && from!==to) adjFull[from].push(to);
   });
 
   const dfsColor = {};
   allNodes.forEach(n => dfsColor[n.id] = 0);
   const backEdges = new Set();
 
-  // Iterative DFS to avoid stack overflow on large graphs
   allNodes.forEach(startN => {
     if(dfsColor[startN.id] !== 0) return;
-    const stack = [{id: startN.id, idx: 0}];
+    const stack = [{id:startN.id, idx:0}];
     dfsColor[startN.id] = 1;
     while(stack.length){
       const frame = stack[stack.length-1];
-      const neighbors = adjFull[frame.id] || [];
-      if(frame.idx < neighbors.length){
-        const v = neighbors[frame.idx++];
-        if(dfsColor[v] === 1){
-          backEdges.add(`${frame.id}->${v}`);
-        } else if(dfsColor[v] === 0){
-          dfsColor[v] = 1;
-          stack.push({id:v, idx:0});
-        }
-      } else {
-        dfsColor[frame.id] = 2;
-        stack.pop();
-      }
+      const nb = adjFull[frame.id] || [];
+      if(frame.idx < nb.length){
+        const v = nb[frame.idx++];
+        if(dfsColor[v]===1)      backEdges.add(`${frame.id}->${v}`);
+        else if(dfsColor[v]===0){ dfsColor[v]=1; stack.push({id:v,idx:0}); }
+      } else { dfsColor[frame.id]=2; stack.pop(); }
     }
   });
 
-  // ── 2. Longest-path rank (DAG) ────────────────────────────
+  // ── 2. Longest-path rank on DAG ───────────────────────────
   const dagOut = {}, inD = {};
   allNodes.forEach(n => { dagOut[n.id]=[]; inD[n.id]=0; });
   edgeDefs.forEach(({from,to}) => {
     if(nodeMap[from]&&nodeMap[to]&&from!==to&&!backEdges.has(`${from}->${to}`)){
-      dagOut[from].push(to);
-      inD[to]++;
+      dagOut[from].push(to); inD[to]++;
     }
   });
 
@@ -2361,29 +2357,78 @@ function layoutFlow(allNodes, subgraphs, edgeDefs){
     });
   }
 
-  const maxRank = Math.max(0, ...allNodes.map(n=>globalRank[n.id]||0));
-
-  // ── 3. Assign subgraph membership ─────────────────────────
-  const nodeSg = {};  // nodeId -> sgId | null
+  // ── 3. Subgraph membership ────────────────────────────────
+  const nodeSg = {};
   subgraphs.forEach(sg => sg.nodeIds.forEach(id => { nodeSg[id] = sg.id; }));
 
-  // ── 4. Order subgraphs left-to-right by their minimum rank ─
+  // ── 4. Resolve rank-band conflicts between subgraphs ──────
+  // If two subgraphs overlap in rank range AND share rank rows, shift
+  // the later one down so its rank band starts after the earlier one ends.
+  // "Conflict" = they would have nodes in the exact same rank row AND
+  // are not connected (i.e. they don't naturally cascade).
+
+  if(subgraphs.length > 1){
+    // Compute rank span per subgraph
+    function sgRankSpan(sg){
+      const ranks = sg.nodeIds.map(id=>globalRank[id]||0);
+      return {min:Math.min(...ranks), max:Math.max(...ranks)};
+    }
+
+    // Build a set of which subgraph pairs share rank rows
+    function ranksOverlap(a, b){
+      const sa = sgRankSpan(a), sb = sgRankSpan(b);
+      return sa.min <= sb.max && sb.min <= sa.max;
+    }
+
+    // Check if there is any edge between subgraph a and subgraph b (directed)
+    const sgEdgeSet = new Set();
+    edgeDefs.forEach(({from,to}) => {
+      const fs = nodeSg[from], ts = nodeSg[to];
+      if(fs && ts && fs !== ts) sgEdgeSet.add(`${fs}->${ts}`);
+    });
+    function connected(a, b){ return sgEdgeSet.has(`${a.id}->${b.id}`) || sgEdgeSet.has(`${b.id}->${a.id}`); }
+    function isNested(a, b){ return a.parentId===b.id || b.parentId===a.id; }
+
+    // Process subgraphs in order of their min rank.
+    // For each subgraph, if it overlaps an earlier one without a connecting edge
+    // AND they are not in a parent/child relationship, shift it down.
+    const ordered = [...subgraphs].sort((a,b) => sgRankSpan(a).min - sgRankSpan(b).min);
+    for(let i=1; i<ordered.length; i++){
+      const sg = ordered[i];
+      let shift = 0;
+      for(let j=0; j<i; j++){
+        const prev = ordered[j];
+        if(ranksOverlap(sg, prev) && !connected(sg, prev) && !isNested(sg, prev)){
+          const prevSpan = sgRankSpan(prev);
+          const sgSpan   = sgRankSpan(sg);
+          const needed   = (prevSpan.max + 1) - sgSpan.min;
+          if(needed > shift) shift = needed;
+        }
+      }
+      if(shift > 0){
+        sg.nodeIds.forEach(id => { globalRank[id] = (globalRank[id]||0) + shift; });
+      }
+    }
+  }
+
+  const maxRank = Math.max(0, ...allNodes.map(n=>globalRank[n.id]||0));
+
+  // ── 5. Subgraph ordering (left → right) ───────────────────
   const sgMinRank = {};
   subgraphs.forEach(sg => {
     sgMinRank[sg.id] = Math.min(...sg.nodeIds.map(id=>globalRank[id]||0));
   });
-  const sgOrder = [...subgraphs].sort((a,b) => sgMinRank[a.id] - sgMinRank[b.id]);
-  const sgSlot = {};
+  const sgOrder = [...subgraphs].sort((a,b) => sgMinRank[a.id]-sgMinRank[b.id]);
+  const sgSlot  = {};
   sgOrder.forEach((sg,i) => sgSlot[sg.id] = i);
 
-  // ── 5. Group nodes by rank ────────────────────────────────
+  // ── 6. Group nodes by rank ────────────────────────────────
   const byRank = [];
   for(let r=0; r<=maxRank; r++) byRank[r] = [];
   allNodes.forEach(n => byRank[globalRank[n.id]||0].push(n));
 
-  // ── 6. Sort within each rank: subgraph clusters, then barycenter ─
-  // Build predecessor position map (updated rank by rank)
-  const nodePos = {};  // nodeId -> float position index (for barycenter)
+  // ── 7. Sort within rank: subgraph clusters + barycenter ───
+  const nodePos = {};
   allNodes.forEach((n,i) => nodePos[n.id] = i);
 
   const predList = {};
@@ -2393,90 +2438,63 @@ function layoutFlow(allNodes, subgraphs, edgeDefs){
   });
 
   for(let r=0; r<=maxRank; r++){
-    const rNodes = byRank[r];
-    if(!rNodes.length) continue;
-
-    rNodes.sort((a,b) => {
-      const aSg = nodeSg[a.id] ?? null;
-      const bSg = nodeSg[b.id] ?? null;
-      // Primary: subgraph slot (free nodes get slot -1 = leftmost? No —
-      // free nodes should be placed by barycenter relative to sg nodes)
-      // Actually: only cluster SG nodes together, free nodes interleave
-      const aSlot = aSg !== null ? sgSlot[aSg] : -0.5;
-      const bSlot = bSg !== null ? sgSlot[bSg] : -0.5;
-
-      // If both in same subgraph: sort by barycenter
-      if(aSg !== null && aSg === bSg){
-        const aBar = predList[a.id].length
-          ? predList[a.id].reduce((s,p)=>s+(nodePos[p]||0),0)/predList[a.id].length
-          : nodePos[a.id];
-        const bBar = predList[b.id].length
-          ? predList[b.id].reduce((s,p)=>s+(nodePos[p]||0),0)/predList[b.id].length
-          : nodePos[b.id];
-        return aBar - bBar;
+    const rn = byRank[r];
+    if(!rn.length) continue;
+    rn.sort((a,b) => {
+      const aSg = nodeSg[a.id]??null, bSg = nodeSg[b.id]??null;
+      const aSlot = aSg!==null ? sgSlot[aSg] : -0.5;
+      const bSlot = bSg!==null ? sgSlot[bSg] : -0.5;
+      if(aSg!==null && aSg===bSg){
+        const aB=predList[a.id].length?predList[a.id].reduce((s,p)=>s+(nodePos[p]||0),0)/predList[a.id].length:nodePos[a.id];
+        const bB=predList[b.id].length?predList[b.id].reduce((s,p)=>s+(nodePos[p]||0),0)/predList[b.id].length:nodePos[b.id];
+        return aB-bB;
       }
-
-      // Different subgraph or free: sort by slot, ties broken by barycenter
-      if(aSlot !== bSlot) return aSlot - bSlot;
-
-      const aBar = predList[a.id].length
-        ? predList[a.id].reduce((s,p)=>s+(nodePos[p]||0),0)/predList[a.id].length
-        : nodePos[a.id];
-      const bBar = predList[b.id].length
-        ? predList[b.id].reduce((s,p)=>s+(nodePos[p]||0),0)/predList[b.id].length
-        : nodePos[b.id];
-      return aBar - bBar;
+      if(aSlot!==bSlot) return aSlot-bSlot;
+      const aB=predList[a.id].length?predList[a.id].reduce((s,p)=>s+(nodePos[p]||0),0)/predList[a.id].length:nodePos[a.id];
+      const bB=predList[b.id].length?predList[b.id].reduce((s,p)=>s+(nodePos[p]||0),0)/predList[b.id].length:nodePos[b.id];
+      return aB-bB;
     });
-
-    rNodes.forEach((n,i) => nodePos[n.id] = i);
+    rn.forEach((n,i) => nodePos[n.id]=i);
   }
 
-  // ── 7. Assign X positions rank by rank ───────────────────
-  // Each rank row: lay nodes left to right, adding extra gap between
-  // different subgraph clusters. Center each subgraph cluster.
-  // Then center the whole rank row.
-  const rowLayouts = [];  // per rank: [{node, x}]
+  // ── 8. Assign X positions row by row ─────────────────────
+  // Within each rank row, add SG_XGAP between different-subgraph group boundaries.
+  // This ensures subgraph bounding boxes never touch horizontally.
+  const rowLayouts = [];
 
   for(let r=0; r<=maxRank; r++){
-    const rNodes = byRank[r];
-    if(!rNodes.length){ rowLayouts[r]=[]; continue; }
+    const rn = byRank[r];
+    if(!rn.length){ rowLayouts[r]=[]; continue; }
 
-    // Build groups: consecutive runs of same subgraph get extra gap between groups
-    let groups = [];
-    let curGroup = null;
-    rNodes.forEach(n => {
-      const sg = nodeSg[n.id] ?? '__free__';
-      if(!curGroup || curGroup.sg !== sg){
-        curGroup = {sg, nodes:[]};
-        groups.push(curGroup);
-      }
-      curGroup.nodes.push(n);
+    // Build consecutive groups by subgraph identity
+    const groups = [];
+    let curGrp = null;
+    rn.forEach(n => {
+      const sg = nodeSg[n.id]??'__free__';
+      if(!curGrp || curGrp.sg !== sg){ curGrp={sg,nodes:[]}; groups.push(curGrp); }
+      curGrp.nodes.push(n);
     });
 
-    // Place groups left to right, with SG_XGAP between different-subgraph groups
     let x = 0;
     const nodeX = {};
-    groups.forEach((grp, gi) => {
-      if(gi > 0){
-        const prevSg = groups[gi-1].sg;
-        const thisSg = grp.sg;
-        // Extra gap between different subgraph groups
-        const extraGap = (prevSg !== thisSg && prevSg !== '__free__' && thisSg !== '__free__')
-          ? SG_XGAP : 0;
-        x += extraGap;
+    groups.forEach((grp,gi) => {
+      if(gi>0){
+        const prev = groups[gi-1].sg;
+        const curr = grp.sg;
+        // Extra gap between any two different subgraph groups (not free-to-free)
+        if(prev !== curr && !(prev==='__free__' && curr==='__free__'))
+          x += SG_XGAP;
       }
       grp.nodes.forEach(n => {
         nodeX[n.id] = x;
-        x += (n.w||NODE_W) + H_GAP;
+        x += (n.w||NODE_W)+H_GAP;
       });
     });
-    // Remove trailing H_GAP
-    const rowW = x - H_GAP;
 
-    rowLayouts[r] = rNodes.map(n => ({node:n, relX: nodeX[n.id]}));
+    rowLayouts[r] = rn.map(n => ({node:n, relX:nodeX[n.id]}));
   }
 
-  // ── 8. Center all rank rows around the widest row ─────────
+  // ── 9. Center rows around the widest row ──────────────────
   const rowWidths = rowLayouts.map(rl => {
     if(!rl.length) return 0;
     const last = rl[rl.length-1];
@@ -2487,44 +2505,104 @@ function layoutFlow(allNodes, subgraphs, edgeDefs){
   for(let r=0; r<=maxRank; r++){
     const rl = rowLayouts[r];
     if(!rl.length) continue;
-    const rw = rowWidths[r];
-    const shift = ORIGIN_X + (totalW - rw) / 2;
-    rl.forEach(({node, relX}) => {
+    const shift = ORIGIN_X + (totalW - rowWidths[r]) / 2;
+    rl.forEach(({node,relX}) => {
       node.x = shift + relX;
-      node.y = ORIGIN_Y + r * (NODE_H + V_GAP);
+      node.y = ORIGIN_Y + r*(NODE_H+V_GAP);
     });
   }
 
-  // ── 9. Re-center subgraph clusters within each rank ───────
-  // After global centering, make sure multi-node-at-same-rank subgraph
-  // groups are internally centered around the column established by the
-  // widest rank within that subgraph.
+  // ── 10. Re-center subgraph rows around widest row in sg ───
   subgraphs.forEach(sg => {
     const sns = sg.nodeIds.map(id=>nodeMap[id]).filter(Boolean);
-    if(sns.length <= 1) return;
-
-    // Find widest rank row within this subgraph
+    if(sns.length<=1) return;
     const byRankSg = {};
     sns.forEach(n => {
-      const r = globalRank[n.id]||0;
-      if(!byRankSg[r]) byRankSg[r] = [];
+      const r=globalRank[n.id]||0;
+      if(!byRankSg[r])byRankSg[r]=[];
       byRankSg[r].push(n);
     });
-
-    // sg center X = center of widest rank row
     const widestRow = Object.values(byRankSg).sort((a,b)=>b.length-a.length)[0];
-    const sgCX = (Math.min(...widestRow.map(n=>n.x)) + Math.max(...widestRow.map(n=>n.x+(n.w||NODE_W)))) / 2;
-
-    // Re-center other ranks within the sg around sgCX
-    Object.values(byRankSg).forEach(rowNodes => {
-      if(rowNodes === widestRow) return;
-      const rowW = rowNodes.reduce((s,n)=>s+(n.w||NODE_W)+H_GAP,-H_GAP);
-      let nx = sgCX - rowW/2;
-      rowNodes.forEach(n => { n.x = nx; nx += (n.w||NODE_W)+H_GAP; });
+    const sgCX = (Math.min(...widestRow.map(n=>n.x)) + Math.max(...widestRow.map(n=>n.x+(n.w||NODE_W))))/2;
+    Object.values(byRankSg).forEach(rns => {
+      if(rns===widestRow) return;
+      const rw = rns.reduce((s,n)=>s+(n.w||NODE_W)+H_GAP,-H_GAP);
+      let nx = sgCX - rw/2;
+      rns.forEach(n => { n.x=nx; nx+=(n.w||NODE_W)+H_GAP; });
     });
   });
 
-  // ── 10. Render ────────────────────────────────────────────
+  // ── 11. Enforce minimum horizontal separation between subgraph bounding boxes ──
+  // After all positioning, check every pair of subgraphs that share any rank row.
+  // If their bounding boxes overlap horizontally, push the right one further right.
+  // Repeat until stable (handles chains of overlapping subgraphs).
+  const MIN_SG_GAP = SG_PAD * 2 + 20;  // minimum pixels between subgraph frames
+
+  function sgBBox(sg){
+    const sns = sg.nodeIds.map(id=>nodeMap[id]).filter(Boolean);
+    if(!sns.length) return null;
+    return {
+      left:  Math.min(...sns.map(n=>n.x)) - SG_PAD,
+      right: Math.max(...sns.map(n=>n.x+(n.w||NODE_W))) + SG_PAD,
+      top:   Math.min(...sns.map(n=>n.y)) - SG_PAD - 20,
+      bottom:Math.max(...sns.map(n=>n.y+(n.h||NODE_H))) + SG_PAD,
+    };
+  }
+
+  // Build ancestor set for nesting checks
+  const sgById = {};
+  subgraphs.forEach(sg => sgById[sg.id] = sg);
+  function isAncestor(potentialAncestor, sg){
+    let cur = sg;
+    while(cur.parentId){ cur = sgById[cur.parentId]; if(!cur) break; if(cur.id===potentialAncestor.id) return true; }
+    return false;
+  }
+  function isRelated(a, b){ return isAncestor(a,b)||isAncestor(b,a); }
+
+  // Expand nodeIds to include all descendant subgraph nodes for bbox
+  function allSgNodeIds(sg){
+    const ids=[...sg.nodeIds];
+    subgraphs.forEach(child=>{ if(child.parentId===sg.id) ids.push(...allSgNodeIds(child)); });
+    return ids;
+  }
+  function sgBBoxFull(sg){
+    const ids=allSgNodeIds(sg);
+    const sns=ids.map(id=>nodeMap[id]).filter(Boolean);
+    if(!sns.length) return null;
+    return{left:Math.min(...sns.map(n=>n.x))-SG_PAD,right:Math.max(...sns.map(n=>n.x+(n.w||NODE_W)))+SG_PAD,top:Math.min(...sns.map(n=>n.y))-SG_PAD-20,bottom:Math.max(...sns.map(n=>n.y+(n.h||NODE_H)))+SG_PAD};
+  }
+
+  function sgOverlapH(sgA, sgB){
+    if(isRelated(sgA, sgB)) return false;  // parent/child: don't separate
+    const a=sgBBoxFull(sgA), b=sgBBoxFull(sgB);
+    if(!a||!b) return false;
+    if(a.bottom < b.top || b.bottom < a.top) return false;
+    return a.right + MIN_SG_GAP > b.left;
+  }
+
+  for(let pass=0; pass<10; pass++){
+    let anyShift = false;
+    const sorted = [...subgraphs].filter(sg=>allSgNodeIds(sg).some(id=>nodeMap[id]))
+      .filter(sg=>!sg.parentId)  // only top-level subgraphs get separated from peers
+      .sort((a,b)=>{ const ba=sgBBoxFull(a),bb=sgBBoxFull(b); return (ba?ba.left:0)-(bb?bb.left:0); });
+
+    for(let i=0; i<sorted.length; i++){
+      for(let j=i+1; j<sorted.length; j++){
+        const sgA=sorted[i], sgB=sorted[j];
+        if(!sgOverlapH(sgA,sgB)) continue;
+        const bA=sgBBoxFull(sgA), bB=sgBBoxFull(sgB);
+        if(!bA||!bB) continue;
+        const needed=(bA.right+MIN_SG_GAP)-bB.left;
+        if(needed<=0) continue;
+        // Shift all nodes of sgB AND its descendants right
+        allSgNodeIds(sgB).forEach(id=>{ if(nodeMap[id]) nodeMap[id].x+=needed; });
+        anyShift=true;
+      }
+    }
+    if(!anyShift) break;
+  }
+
+  // ── 12. Render ────────────────────────────────────────────
   allNodes.forEach(n => renderNode(n));
   edges.forEach(e => {
     const [fp,tp] = bestPorts(e.from,e.to);
