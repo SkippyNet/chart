@@ -588,7 +588,7 @@ select option{background:var(--s2);}
   <button class="btn" id="spread-btn" title="Fan out edges on crowded nodes" onclick="toggleSpreadPorts()">⇶ Spread</button>
   <button class="btn" id="clearance-btn" title="Route edges around nodes" onclick="cycleClearance()">◎ Clearance: Off</button>
   <button class="btn" onclick="openPrefs()">⚙ Prefs</button>
-  <button class="btn" onclick="if(selIds.size===1){const id=[...selIds][0];if(nodes[id]?.shape==='token')openCharSheet(id);else toast('Select a token first');}else toast('Select a token first');">📋 Sheet</button>
+  <button class="btn" onclick="openSelectedCharSheet()">📋 Sheet</button>
   <button class="btn" onclick="openSaveModal()">💾 Save</button>
   <button class="btn" onclick="openSaveModal('load')">📂 Load</button>
   <div class="sep"></div>
@@ -4686,7 +4686,7 @@ function rollCustomDice() {
     const qty = parseInt(match[1]) || 1;
     const sides = parseInt(match[2]);
     const mod = parseInt(match[3]) || 0;
-    if (sides < 1 || sides > 1000 || qty < 1 || qty > 100) { toast('Dice: 1-1000 sides, 1-100 qty'); return; }
+    if (sides < 1 || sides > 1000 || qty < 1 || qty > 100) { toast('Invalid dice: 1-100 dice with 1-1000 sides each'); return; }
     const oldQty = document.getElementById('dice-qty').value;
     const oldMod = document.getElementById('dice-mod').value;
     document.getElementById('dice-qty').value = qty;
@@ -4696,7 +4696,7 @@ function rollCustomDice() {
     document.getElementById('dice-mod').value = oldMod;
     totalAll += result;
   }
-  if (!found) toast('Invalid dice notation. Use format like 2d6+3');
+  if (!found) toast('Invalid notation. Try d20, 2d6+3, or 4d8-1');
 }
 
 // ── Token System ──
@@ -4833,6 +4833,13 @@ function abilityMod(score) {
 }
 function modStr(mod) {
   return mod >= 0 ? '+' + mod : String(mod);
+}
+function openSelectedCharSheet() {
+  if (selIds.size === 1) {
+    const id = [...selIds][0];
+    if (nodes[id]?.shape === 'token') openCharSheet(id);
+    else toast('Select a token first');
+  } else toast('Select a token first');
 }
 function openCharSheet(nodeId) {
   const n = nodes[nodeId];
