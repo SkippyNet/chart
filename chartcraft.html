@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChartCraft</title>
+<title>QuestBoard – Virtual Tabletop</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -472,12 +472,103 @@ select option{background:var(--s2);}
 .ph-toggle.collapsed .ph-arrow{transform:rotate(-90deg);}
 .ph-collapsible{overflow:hidden;transition:max-height .22s ease;flex-shrink:0;}
 
+/* ── RPG / VTT Styles ── */
+/* Dice Roller */
+#dice-panel{padding:8px;border-bottom:1px solid var(--bd);}
+.dice-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;}
+.dice-btn{background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:Inter,sans-serif;font-size:11px;font-weight:700;padding:8px 2px;border-radius:5px;cursor:pointer;text-align:center;transition:all .12s;}
+.dice-btn:hover{border-color:var(--ac);background:rgba(99,102,241,.15);transform:scale(1.05);}
+.dice-btn:active{transform:scale(0.95);}
+.dice-btn .dice-icon{font-size:18px;display:block;margin-bottom:2px;}
+.dice-mod-row{display:flex;gap:4px;align-items:center;margin-bottom:6px;}
+.dice-mod-input{background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:12px;padding:5px 8px;border-radius:4px;outline:none;width:100%;text-align:center;}
+.dice-mod-input:focus{border-color:var(--ac);}
+.dice-result{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:8px;margin-top:4px;min-height:40px;max-height:120px;overflow-y:auto;}
+.dice-result-item{font-size:11px;color:var(--t2);padding:2px 0;border-bottom:1px solid rgba(46,51,80,.3);display:flex;justify-content:space-between;align-items:center;}
+.dice-result-item:last-child{border:none;}
+.dice-result-item .roll-detail{color:var(--t3);font-family:'JetBrains Mono',monospace;font-size:10px;}
+.dice-result-item .roll-total{color:var(--ac);font-weight:700;font-size:13px;font-family:'JetBrains Mono',monospace;}
+.dice-result-item .roll-nat20{color:#22c55e;text-shadow:0 0 6px rgba(34,197,94,.4);}
+.dice-result-item .roll-nat1{color:#ef4444;text-shadow:0 0 6px rgba(239,68,68,.4);}
+.dice-custom-row{display:flex;gap:4px;margin-bottom:6px;}
+.dice-custom-input{background:var(--s2);border:1px solid var(--bd);color:#4ade80;font-family:'JetBrains Mono',monospace;font-size:12px;padding:5px 8px;border-radius:4px;outline:none;flex:1;}
+.dice-custom-input:focus{border-color:var(--ac);}
+.dice-roll-btn{background:var(--ac);border:none;color:#fff;font-family:Inter,sans-serif;font-size:11px;font-weight:600;padding:5px 12px;border-radius:4px;cursor:pointer;white-space:nowrap;}
+.dice-roll-btn:hover{background:var(--ac2);}
+
+/* Token styles */
+.node[data-s="token"] .nb{border-radius:50%;overflow:visible;}
+.node[data-s="token"] .hp-bar{position:absolute;bottom:-8px;left:10%;width:80%;height:5px;background:#333;border-radius:3px;overflow:hidden;pointer-events:none;}
+.node[data-s="token"] .hp-fill{height:100%;border-radius:3px;transition:width .3s;}
+.token-label{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:600;white-space:nowrap;color:var(--t1);text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none;}
+.token-ac{position:absolute;top:-6px;right:-6px;width:20px;height:20px;background:var(--s1);border:1.5px solid var(--yw);border-radius:50%;font-size:8px;font-weight:700;color:var(--yw);display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:31;}
+.token-init-badge{position:absolute;top:-6px;left:-6px;width:18px;height:18px;background:var(--s1);border:1.5px solid var(--ac);border-radius:50%;font-size:7px;font-weight:700;color:var(--ac);display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:31;}
+
+/* Initiative Tracker */
+#init-panel{padding:8px;border-bottom:1px solid var(--bd);}
+.init-list{display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto;}
+.init-item{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd);border-radius:5px;padding:5px 8px;font-size:11px;cursor:pointer;transition:all .12s;}
+.init-item:hover{border-color:var(--ac);}
+.init-item.active{border-color:var(--gn);background:rgba(34,197,94,.1);}
+.init-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.init-name{flex:1;color:var(--t1);font-weight:500;}
+.init-val{color:var(--ac);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:12px;}
+.init-ctrl{display:flex;gap:4px;margin-top:6px;}
+.init-ctrl .btn{flex:1;text-align:center;justify-content:center;}
+
+/* Game Log */
+#log-panel{padding:8px;border-bottom:1px solid var(--bd);}
+.log-entries{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+.log-entry{font-size:10px;color:var(--t2);padding:3px 6px;border-radius:3px;line-height:1.5;font-family:'JetBrains Mono',monospace;}
+.log-entry.roll{background:rgba(99,102,241,.08);}
+.log-entry.combat{background:rgba(239,68,68,.08);}
+.log-entry.system{background:rgba(234,179,8,.06);color:var(--t3);}
+.log-entry .log-time{color:var(--t3);margin-right:4px;}
+.log-entry .log-highlight{color:var(--ac);font-weight:600;}
+
+/* Token palette */
+.token-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.token-btn{background:var(--s2);border:1px solid var(--bd);color:var(--t2);font-size:9px;font-weight:600;font-family:Inter,sans-serif;padding:8px 2px;border-radius:4px;cursor:pointer;text-align:center;line-height:1.4;}
+.token-btn:hover{border-color:var(--ac);color:var(--t1);}
+.token-btn .token-preview{width:24px;height:24px;border-radius:50%;margin:0 auto 3px;border:2px solid;}
+
+/* Character Sheet Modal */
+#charsheet-modal{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:900;display:none;align-items:center;justify-content:center;}
+#charsheet-modal.open{display:flex;}
+#charsheet-box{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:22px;width:680px;max-width:94vw;max-height:88vh;overflow-y:auto;}
+.cs-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd);}
+.cs-name{font-size:18px;font-weight:700;color:var(--t1);flex:1;}
+.cs-class{font-size:12px;color:var(--ac);font-weight:500;}
+.cs-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px;}
+.cs-stat{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:8px;text-align:center;}
+.cs-stat-name{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:2px;}
+.cs-stat-val{font-size:20px;font-weight:700;color:var(--t1);font-family:'JetBrains Mono',monospace;}
+.cs-stat-mod{font-size:11px;color:var(--ac);font-weight:600;}
+.cs-row{display:flex;gap:8px;margin-bottom:10px;}
+.cs-field{flex:1;}
+.cs-field label{display:block;font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--t3);margin-bottom:3px;}
+.cs-field input,.cs-field select,.cs-field textarea{width:100%;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:Inter,sans-serif;font-size:12px;padding:6px 8px;border-radius:4px;outline:none;}
+.cs-field input:focus,.cs-field select:focus,.cs-field textarea:focus{border-color:var(--ac);}
+.cs-section{margin-bottom:12px;}
+.cs-section-title{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bd);}
+.cs-saves-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.cs-save-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);padding:3px 6px;background:var(--s2);border-radius:4px;}
+.cs-save-item input[type="checkbox"]{accent-color:var(--ac);}
+.cs-skills-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+.cs-skill-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2);padding:2px 4px;}
+.cs-skill-item input[type="checkbox"]{accent-color:var(--ac);width:12px;height:12px;}
+.cs-skill-bonus{color:var(--ac);font-weight:600;font-family:'JetBrains Mono',monospace;min-width:20px;text-align:right;}
+
+/* Grid measurement overlay */
+.grid-label{position:absolute;font-size:8px;color:var(--t3);opacity:.4;pointer-events:none;font-family:'JetBrains Mono',monospace;}
+#measure-line{position:absolute;pointer-events:none;z-index:100;display:none;}
+#measure-label{position:absolute;background:var(--s1);border:1px solid var(--ac);color:var(--ac);font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:3px;pointer-events:none;z-index:101;display:none;white-space:nowrap;}
 </style>
 </head>
 <body>
 
 <div id="tb">
-  <div class="logo">Chart<span>Craft</span></div>
+  <div class="logo">Quest<span>Board</span></div>
   <div class="sep"></div>
   <button class="btn on" id="t-sel"  onclick="setTool('sel')">↖ Select</button>
   <button class="btn"    id="t-edge" onclick="setTool('edge')">⟶ Edge</button>
@@ -497,6 +588,7 @@ select option{background:var(--s2);}
   <button class="btn" id="spread-btn" title="Fan out edges on crowded nodes" onclick="toggleSpreadPorts()">⇶ Spread</button>
   <button class="btn" id="clearance-btn" title="Route edges around nodes" onclick="cycleClearance()">◎ Clearance: Off</button>
   <button class="btn" onclick="openPrefs()">⚙ Prefs</button>
+  <button class="btn" onclick="openSelectedCharSheet()">📋 Sheet</button>
   <button class="btn" onclick="openSaveModal()">💾 Save</button>
   <button class="btn" onclick="openSaveModal('load')">📂 Load</button>
   <div class="sep"></div>
@@ -564,6 +656,78 @@ select option{background:var(--s2);}
       </div>
     </div>
 
+    </div>
+
+    <div class="ph ph-toggle" onclick="toggleSection(this)">🎲 Dice Roller <span class="ph-arrow">▼</span></div>
+    <div class="ph-collapsible" style="max-height:none">
+    <div id="dice-panel">
+      <div class="dice-grid">
+        <button class="dice-btn" onclick="rollDice(4)" title="Roll d4"><span class="dice-icon">🔺</span>d4</button>
+        <button class="dice-btn" onclick="rollDice(6)" title="Roll d6"><span class="dice-icon">🎲</span>d6</button>
+        <button class="dice-btn" onclick="rollDice(8)" title="Roll d8"><span class="dice-icon">💎</span>d8</button>
+        <button class="dice-btn" onclick="rollDice(10)" title="Roll d10"><span class="dice-icon">🔟</span>d10</button>
+        <button class="dice-btn" onclick="rollDice(12)" title="Roll d12"><span class="dice-icon">⬡</span>d12</button>
+        <button class="dice-btn" onclick="rollDice(20)" title="Roll d20"><span class="dice-icon">🎯</span>d20</button>
+        <button class="dice-btn" onclick="rollDice(100)" title="Roll d100"><span class="dice-icon">💯</span>d100</button>
+        <button class="dice-btn" onclick="rollDice(20,0,true)" title="Roll d20 with advantage" style="font-size:9px"><span class="dice-icon">⬆</span>Adv</button>
+      </div>
+      <div class="dice-mod-row">
+        <span style="font-size:10px;color:var(--t3);white-space:nowrap">Mod:</span>
+        <input type="number" id="dice-mod" class="dice-mod-input" value="0" title="Modifier to add to roll">
+        <span style="font-size:10px;color:var(--t3);white-space:nowrap">Qty:</span>
+        <input type="number" id="dice-qty" class="dice-mod-input" value="1" min="1" max="20" title="Number of dice">
+      </div>
+      <div class="dice-custom-row">
+        <input id="dice-custom" class="dice-custom-input" placeholder="2d6+3, 4d8-1, d20+5…" onkeydown="if(event.key==='Enter')rollCustomDice()">
+        <button class="dice-roll-btn" onclick="rollCustomDice()">🎲 Roll</button>
+      </div>
+      <div class="dice-result" id="dice-results">
+        <div style="color:var(--t3);font-size:10px;text-align:center;padding:8px">Roll some dice to begin!</div>
+      </div>
+    </div>
+    </div>
+
+    <div class="ph ph-toggle collapsed" onclick="toggleSection(this)">⚔️ Tokens <span class="ph-arrow">▼</span></div>
+    <div class="ph-collapsible" style="max-height:0">
+    <div style="padding:8px;border-bottom:1px solid var(--bd)">
+      <div class="token-grid">
+        <button class="token-btn" onclick="addToken('pc')"><div class="token-preview" style="background:#1a3a2a;border-color:#22c55e;"></div>PC</button>
+        <button class="token-btn" onclick="addToken('npc')"><div class="token-preview" style="background:#1a2a3a;border-color:#3b82f6;"></div>NPC</button>
+        <button class="token-btn" onclick="addToken('monster')"><div class="token-preview" style="background:#3a1a1a;border-color:#ef4444;"></div>Monster</button>
+        <button class="token-btn" onclick="addToken('boss')"><div class="token-preview" style="background:#3a2a1a;border-color:#f59e0b;"></div>Boss</button>
+        <button class="token-btn" onclick="addToken('object')"><div class="token-preview" style="background:#2a2a2a;border-color:#6b7280;"></div>Object</button>
+        <button class="token-btn" onclick="addToken('spell')"><div class="token-preview" style="background:#2a1a3a;border-color:#a855f7;"></div>Spell</button>
+      </div>
+    </div>
+    </div>
+
+    <div class="ph ph-toggle collapsed" onclick="toggleSection(this)">📋 Initiative <span class="ph-arrow">▼</span></div>
+    <div class="ph-collapsible" style="max-height:0">
+    <div id="init-panel">
+      <div class="init-list" id="init-list">
+        <div style="color:var(--t3);font-size:10px;text-align:center;padding:8px">Add tokens and roll initiative</div>
+      </div>
+      <div class="init-ctrl">
+        <button class="btn" onclick="rollAllInitiative()" title="Roll initiative for all tokens">🎲 Roll All</button>
+        <button class="btn" onclick="nextTurn()" title="Next turn">▶ Next</button>
+        <button class="btn" onclick="prevTurn()" title="Previous turn">◀ Prev</button>
+        <button class="btn" onclick="resetInitiative()" title="Clear initiative">✕ Reset</button>
+      </div>
+    </div>
+    </div>
+
+    <div class="ph ph-toggle collapsed" onclick="toggleSection(this)">📜 Game Log <span class="ph-arrow">▼</span></div>
+    <div class="ph-collapsible" style="max-height:0">
+    <div id="log-panel">
+      <div class="log-entries" id="game-log">
+        <div class="log-entry system"><span class="log-time">--:--</span> Welcome to QuestBoard!</div>
+      </div>
+      <div style="display:flex;gap:4px;margin-top:6px">
+        <input id="log-input" class="dice-custom-input" placeholder="Add a note…" onkeydown="if(event.key==='Enter')addLogNote()">
+        <button class="dice-roll-btn" onclick="addLogNote()">Add</button>
+      </div>
+      <button class="btn" style="width:100%;margin-top:4px;text-align:center;justify-content:center" onclick="clearGameLog()">Clear Log</button>
+    </div>
     </div>
 
     <div class="ph ph-toggle collapsed" onclick="toggleSection(this)">Dops <span class="ph-arrow">▼</span></div>
@@ -895,7 +1059,7 @@ select option{background:var(--s2);}
     </div>
     <div id="selbox"></div>
     <div id="zind">100%</div>
-    <div id="hints">V Select · E Edge · Del Delete · Dbl-click add node · Scroll zoom · Space+drag pan</div>
+    <div id="hints">V Select · E Edge · R Roll dice · I Initiative · Del Delete · Dbl-click add token · Scroll zoom · Space+drag pan</div>
   </div>
 </div>
 
@@ -904,6 +1068,68 @@ select option{background:var(--s2);}
 
 <div id="rot-badge"></div>
 <div id="toast"></div>
+
+<!-- CHARACTER SHEET MODAL -->
+<div id="charsheet-modal">
+  <div id="charsheet-box">
+    <div class="cs-header">
+      <input id="cs-name" class="cs-name" placeholder="Character Name" style="background:transparent;border:none;outline:none;color:var(--t1);font-size:18px;font-weight:700;">
+      <input id="cs-class" class="cs-class" placeholder="Race / Class / Level" style="background:transparent;border:none;outline:none;color:var(--ac);font-size:12px;width:200px;text-align:right;">
+      <button class="btn" onclick="closeCharSheet()">✕</button>
+    </div>
+    <div class="cs-section">
+      <div class="cs-section-title">Ability Scores</div>
+      <div class="cs-grid">
+        <div class="cs-stat"><div class="cs-stat-name">STR</div><input id="cs-str" class="cs-stat-val" value="10" type="number" style="width:50px;background:transparent;border:none;text-align:center;color:var(--t1);font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;" onchange="updateCharSheet()"><div class="cs-stat-mod" id="cs-str-mod">+0</div></div>
+        <div class="cs-stat"><div class="cs-stat-name">DEX</div><input id="cs-dex" class="cs-stat-val" value="10" type="number" style="width:50px;background:transparent;border:none;text-align:center;color:var(--t1);font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;" onchange="updateCharSheet()"><div class="cs-stat-mod" id="cs-dex-mod">+0</div></div>
+        <div class="cs-stat"><div class="cs-stat-name">CON</div><input id="cs-con" class="cs-stat-val" value="10" type="number" style="width:50px;background:transparent;border:none;text-align:center;color:var(--t1);font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;" onchange="updateCharSheet()"><div class="cs-stat-mod" id="cs-con-mod">+0</div></div>
+        <div class="cs-stat"><div class="cs-stat-name">INT</div><input id="cs-int" class="cs-stat-val" value="10" type="number" style="width:50px;background:transparent;border:none;text-align:center;color:var(--t1);font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;" onchange="updateCharSheet()"><div class="cs-stat-mod" id="cs-int-mod">+0</div></div>
+        <div class="cs-stat"><div class="cs-stat-name">WIS</div><input id="cs-wis" class="cs-stat-val" value="10" type="number" style="width:50px;background:transparent;border:none;text-align:center;color:var(--t1);font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;" onchange="updateCharSheet()"><div class="cs-stat-mod" id="cs-wis-mod">+0</div></div>
+        <div class="cs-stat"><div class="cs-stat-name">CHA</div><input id="cs-cha" class="cs-stat-val" value="10" type="number" style="width:50px;background:transparent;border:none;text-align:center;color:var(--t1);font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;" onchange="updateCharSheet()"><div class="cs-stat-mod" id="cs-cha-mod">+0</div></div>
+      </div>
+    </div>
+    <div class="cs-row">
+      <div class="cs-field"><label>HP</label><input id="cs-hp" type="number" value="10"></div>
+      <div class="cs-field"><label>Max HP</label><input id="cs-maxhp" type="number" value="10"></div>
+      <div class="cs-field"><label>Temp HP</label><input id="cs-temphp" type="number" value="0"></div>
+      <div class="cs-field"><label>AC</label><input id="cs-ac" type="number" value="10"></div>
+      <div class="cs-field"><label>Initiative</label><input id="cs-init" type="number" value="0"></div>
+      <div class="cs-field"><label>Speed</label><input id="cs-speed" value="30 ft."></div>
+    </div>
+    <div class="cs-row">
+      <div class="cs-field"><label>Prof. Bonus</label><input id="cs-prof" type="number" value="2"></div>
+      <div class="cs-field"><label>Hit Dice</label><input id="cs-hitdice" value="1d10"></div>
+      <div class="cs-field"><label>Level</label><input id="cs-level" type="number" value="1"></div>
+      <div class="cs-field"><label>XP</label><input id="cs-xp" type="number" value="0"></div>
+    </div>
+    <div class="cs-section">
+      <div class="cs-section-title">Saving Throws</div>
+      <div class="cs-saves-grid">
+        <div class="cs-save-item"><input type="checkbox" id="cs-save-str"><span>STR</span><span class="cs-skill-bonus" id="cs-save-str-val">+0</span></div>
+        <div class="cs-save-item"><input type="checkbox" id="cs-save-dex"><span>DEX</span><span class="cs-skill-bonus" id="cs-save-dex-val">+0</span></div>
+        <div class="cs-save-item"><input type="checkbox" id="cs-save-con"><span>CON</span><span class="cs-skill-bonus" id="cs-save-con-val">+0</span></div>
+        <div class="cs-save-item"><input type="checkbox" id="cs-save-int"><span>INT</span><span class="cs-skill-bonus" id="cs-save-int-val">+0</span></div>
+        <div class="cs-save-item"><input type="checkbox" id="cs-save-wis"><span>WIS</span><span class="cs-skill-bonus" id="cs-save-wis-val">+0</span></div>
+        <div class="cs-save-item"><input type="checkbox" id="cs-save-cha"><span>CHA</span><span class="cs-skill-bonus" id="cs-save-cha-val">+0</span></div>
+      </div>
+    </div>
+    <div class="cs-section">
+      <div class="cs-section-title">Skills</div>
+      <div class="cs-skills-grid" id="cs-skills-grid"></div>
+    </div>
+    <div class="cs-row">
+      <div class="cs-field" style="flex:2"><label>Features &amp; Traits</label><textarea id="cs-features" rows="3" style="resize:vertical"></textarea></div>
+      <div class="cs-field" style="flex:2"><label>Equipment &amp; Items</label><textarea id="cs-equipment" rows="3" style="resize:vertical"></textarea></div>
+    </div>
+    <div class="cs-row">
+      <div class="cs-field"><label>Notes / Backstory</label><textarea id="cs-notes" rows="3" style="resize:vertical;width:100%"></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+      <button class="xmod-btn" onclick="closeCharSheet()">Cancel</button>
+      <button class="xmod-btn primary" onclick="applyCharSheet()">Apply to Token</button>
+    </div>
+  </div>
+</div>
 
 <!-- MOBILE BOTTOM NAV -->
 <div id="mob-bar">
@@ -1181,7 +1407,15 @@ function mkNode(o={}){
     erData:o.erData||null,
     erMarkStart:o.erMarkStart||null,
     erMarkEnd:o.erMarkEnd||null,
-    reqData:o.reqData||null};
+    reqData:o.reqData||null,
+    tokenType:o.tokenType||null,
+    tokenHP:o.tokenHP||0,
+    tokenMaxHP:o.tokenMaxHP||0,
+    tokenAC:o.tokenAC||0,
+    tokenInit:o.tokenInit||0,
+    tokenInitRoll:o.tokenInitRoll||0,
+    tokenEmoji:o.tokenEmoji||null,
+    charSheet:o.charSheet||null};
   nodes[id]=n; renderNode(n); pushUndo(); return n;
 }
 function renderNode(n){
@@ -1351,6 +1585,40 @@ function renderNode(n){
     nb.style.cssText=`background:${n.fill};border-color:${n.stroke};border-width:${n.bw}px;width:${n.w}px;height:${n.h}px;padding:0;overflow:hidden;`;
     const inner=nb.querySelector('svg');
     if(inner) inner.style.cssText='width:100%;height:100%;max-width:none;display:block;pointer-events:none;';
+  }
+  // ── Token overlay (RPG) ──
+  if (n.shape === 'token') {
+    let hpBar = el.querySelector('.hp-bar');
+    if (!hpBar) {
+      hpBar = document.createElement('div');
+      hpBar.className = 'hp-bar';
+      hpBar.innerHTML = '<div class="hp-fill"></div>';
+      el.appendChild(hpBar);
+    }
+    const hpPct = n.tokenMaxHP > 0 ? Math.max(0, Math.min(100, (n.tokenHP / n.tokenMaxHP) * 100)) : 100;
+    const hpFill = hpBar.querySelector('.hp-fill');
+    if (hpFill) {
+      hpFill.style.width = hpPct + '%';
+      hpFill.style.background = hpPct > 50 ? '#22c55e' : (hpPct > 25 ? '#eab308' : '#ef4444');
+    }
+    let tLabel = el.querySelector('.token-label');
+    if (!tLabel) {
+      tLabel = document.createElement('div');
+      tLabel.className = 'token-label';
+      el.appendChild(tLabel);
+    }
+    tLabel.textContent = n.label;
+    if (n.tokenAC && n.tokenAC > 0) {
+      let acBadge = el.querySelector('.token-ac');
+      if (!acBadge) {
+        acBadge = document.createElement('div');
+        acBadge.className = 'token-ac';
+        el.appendChild(acBadge);
+      }
+      acBadge.textContent = n.tokenAC;
+    }
+    const lbl = nb.querySelector('.nlabel');
+    if (lbl) lbl.textContent = n.tokenEmoji || '⚔️';
   }
 }
 function addNode(shape){
@@ -1958,6 +2226,29 @@ function updateProps(){
       const hasSed=el2&&(el2._sedType||n._sedType);
       editChartBtn.style.display=hasSed?'block':'none';
       if(hasSed) editChartBtn.onclick=()=>openSed(el2._sedType||n._sedType, el2._sedCode||n._sedCode||'');
+    }
+    // Token-specific properties
+    let tokProps = document.getElementById('token-props-row');
+    if (!tokProps) {
+      tokProps = document.createElement('div');
+      tokProps.id = 'token-props-row';
+      tokProps.style.cssText = 'display:none;flex-direction:column;gap:6px';
+      tokProps.innerHTML = '<div class="pr"><div class="pl">HP</div><div style="display:flex;gap:4px"><input class="pi" id="p-tok-hp" type="number" style="width:50px" oninput="liveN(\'tokenHP\',+this.value);renderNode(nodes[[...selIds][0]])"><span style="color:var(--t3);font-size:11px;align-self:center">/</span><input class="pi" id="p-tok-maxhp" type="number" style="width:50px" oninput="liveN(\'tokenMaxHP\',+this.value);renderNode(nodes[[...selIds][0]])"></div></div>' +
+        '<div class="pr"><div class="pl">AC</div><input class="pi" id="p-tok-ac" type="number" style="width:50px" oninput="liveN(\'tokenAC\',+this.value);renderNode(nodes[[...selIds][0]])"></div>' +
+        '<div class="pr"><div class="pl">Init Mod</div><input class="pi" id="p-tok-init" type="number" style="width:50px" oninput="liveN(\'tokenInit\',+this.value)"></div>' +
+        '<button class="pi" style="cursor:pointer;padding:6px 10px;font-size:11px;text-align:center;background:#1a1d3c;border:1px solid #6366f1;color:#6366f1;border-radius:5px;font-weight:600;margin-top:2px" id="p-tok-sheet">📋 Character Sheet</button>';
+      np.appendChild(tokProps);
+    }
+    if (n.shape === 'token') {
+      tokProps.style.display = 'flex';
+      tokProps.style.flexDirection = 'column';
+      document.getElementById('p-tok-hp').value = n.tokenHP || 0;
+      document.getElementById('p-tok-maxhp').value = n.tokenMaxHP || 0;
+      document.getElementById('p-tok-ac').value = n.tokenAC || 0;
+      document.getElementById('p-tok-init').value = n.tokenInit || 0;
+      document.getElementById('p-tok-sheet').onclick = () => openCharSheet(n.id);
+    } else {
+      tokProps.style.display = 'none';
     }
   } else if(selEdgeId){
     const e=edges.find(e=>e.id===selEdgeId);
@@ -4063,14 +4354,15 @@ window.addEventListener('load',()=>{
   initTxtIconPresets();
   initDops();
   mermaid.initialize({startOnLoad:false,theme:'dark',securityLevel:'loose',themeVariables:{background:'#0f1117',primaryColor:'#1e2235',primaryTextColor:'#f1f5f9',primaryBorderColor:'#6366f1',lineColor:'#6366f1',secondaryColor:'#22263a',tertiaryColor:'#1a1d27',edgeLabelBackground:'#0f1117',titleColor:'#f1f5f9'},flowchart:{curve:'basis'},sequence:{useMaxWidth:false}});
-  const n1=mkNode({label:'Start',x:80,y:160,shape:'round',fill:'#0f2e1e',stroke:'#22c55e',tc:'#fff'});
-  const n2=mkNode({label:'Decision',x:300,y:155,shape:'diamond',fill:'#1a1d3c',stroke:'#6366f1',tc:'#fff',w:130,h:70});
-  const n3=mkNode({label:'Process A',x:530,y:100,shape:'rect',fill:'#1e2235',stroke:'#6366f1',tc:'#f1f5f9'});
-  const n4=mkNode({label:'Process B',x:530,y:230,shape:'rect',fill:'#2e0f0e',stroke:'#ef4444',tc:'#fff'});
-  const n5=mkNode({label:'Database',x:760,y:100,shape:'cylinder',fill:'#0f1a2e',stroke:'#4f8ef7',tc:'#f1f5f9'});
-  const n6=mkNode({label:'End',x:760,y:230,shape:'round',fill:'#1a1d3c',stroke:'#6366f1',tc:'#fff'});
-  mkEdge({from:n1.id,to:n2.id});mkEdge({from:n2.id,to:n3.id,label:'Yes'});mkEdge({from:n2.id,to:n4.id,label:'No',color:'#ef4444'});
-  mkEdge({from:n3.id,to:n5.id});mkEdge({from:n4.id,to:n6.id});mkEdge({from:n5.id,to:n6.id,sty:'dashed'});
+  // RPG Battle Scene Demo
+  const t1=mkNode({shape:'token',label:'Aelara',x:150,y:150,w:48,h:48,fill:'#1a3a2a',stroke:'#22c55e',tc:'#22c55e',bw:3,fs:16,tokenType:'pc',tokenHP:28,tokenMaxHP:28,tokenAC:16,tokenInit:3,tokenEmoji:'⚔️',charSheet:{name:'Aelara',classInfo:'Elf Fighter 3',str:16,dex:14,con:13,int:10,wis:12,cha:8,hp:28,maxhp:28,ac:16,init:3,speed:'30 ft.',prof:2,hitdice:'3d10',level:3}});
+  const t2=mkNode({shape:'token',label:'Thorn',x:150,y:280,w:48,h:48,fill:'#1a3a2a',stroke:'#22c55e',tc:'#22c55e',bw:3,fs:16,tokenType:'pc',tokenHP:22,tokenMaxHP:22,tokenAC:13,tokenInit:2,tokenEmoji:'🧙',charSheet:{name:'Thorn',classInfo:'Human Wizard 3',str:8,dex:14,con:12,int:18,wis:13,cha:10,hp:22,maxhp:22,ac:13,init:2,speed:'30 ft.',prof:2,hitdice:'3d6',level:3}});
+  const t3=mkNode({shape:'token',label:'Goblin',x:450,y:140,w:48,h:48,fill:'#3a1a1a',stroke:'#ef4444',tc:'#ef4444',bw:3,fs:16,tokenType:'monster',tokenHP:7,tokenMaxHP:7,tokenAC:15,tokenInit:2,tokenEmoji:'👹'});
+  const t4=mkNode({shape:'token',label:'Goblin',x:450,y:280,w:48,h:48,fill:'#3a1a1a',stroke:'#ef4444',tc:'#ef4444',bw:3,fs:16,tokenType:'monster',tokenHP:7,tokenMaxHP:7,tokenAC:15,tokenInit:2,tokenEmoji:'👹'});
+  const t5=mkNode({shape:'token',label:'Bugbear',x:580,y:210,w:56,h:56,fill:'#3a2a1a',stroke:'#f59e0b',tc:'#f59e0b',bw:3,fs:18,tokenType:'boss',tokenHP:27,tokenMaxHP:27,tokenAC:16,tokenInit:1,tokenEmoji:'💀'});
+  const w1=mkNode({label:'Stone Wall',x:340,y:80,w:20,h:280,shape:'rect',fill:'#333',stroke:'#555',tc:'#777',fs:0,bw:1});
+  const w2=mkNode({label:'Chest',x:620,y:120,w:36,h:36,shape:'rect',fill:'#3a2a1a',stroke:'#f59e0b',tc:'#f59e0b',fs:10,bw:2});
+  w2.label='🗝️';renderNode(w2);
   setTimeout(fitView,100);
 });
 
@@ -4299,6 +4591,387 @@ function clearWaypoints(){
   const e=edges.find(e=>e.id===selEdgeId);if(!e)return;
   e.waypoints=[];renderEdge(e);updateProps();
 }
+
+// ═══════════════════════════════════════════════════════
+// RPG / VIRTUAL TABLETOP SYSTEM
+// ═══════════════════════════════════════════════════════
+
+// ── Game Log ──
+const MAX_LOG_ENTRIES = 100;
+const MAX_DICE_RESULTS = 20;
+const MAX_DICE_SIDES = 1000;
+const MAX_DICE_QTY = 100;
+
+const gameLog = [];
+function addLog(msg, type='system') {
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  gameLog.push({ time, msg, type });
+  const el = document.getElementById('game-log');
+  if (!el) return;
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  entry.innerHTML = '<span class="log-time">' + time + '</span> ' + msg;
+  el.appendChild(entry);
+  el.scrollTop = el.scrollHeight;
+  while (el.children.length > MAX_LOG_ENTRIES) el.removeChild(el.firstChild);
+}
+function addLogNote() {
+  const inp = document.getElementById('log-input');
+  if (!inp) return;
+  const msg = inp.value.trim();
+  if (!msg) return;
+  addLog(msg, 'system');
+  inp.value = '';
+}
+function clearGameLog() {
+  gameLog.length = 0;
+  const el = document.getElementById('game-log');
+  if (el) el.innerHTML = '<div class="log-entry system"><span class="log-time">--:--</span> Log cleared.</div>';
+}
+
+// ── Dice Roller ──
+function rollSingleDie(sides) {
+  return Math.floor(Math.random() * sides) + 1;
+}
+function rollDice(sides, mod, advantage) {
+  const qty = parseInt(document.getElementById('dice-qty')?.value) || 1;
+  if (mod === undefined) mod = parseInt(document.getElementById('dice-mod')?.value) || 0;
+  const rolls = [];
+  
+  if (advantage && sides === 20) {
+    const r1 = rollSingleDie(20);
+    const r2 = rollSingleDie(20);
+    const best = Math.max(r1, r2);
+    rolls.push(best);
+    const total = best + mod;
+    const modStr = mod >= 0 ? '+' + mod : String(mod);
+    const isNat20 = best === 20;
+    const isNat1 = best === 1;
+    const cls = isNat20 ? 'roll-nat20' : (isNat1 ? 'roll-nat1' : '');
+    const label = isNat20 ? ' NAT 20!' : (isNat1 ? ' NAT 1!' : '');
+    addDiceResult('d20 (Adv)', '[' + r1 + ', ' + r2 + '] → ' + best + (mod !== 0 ? modStr : ''), total, cls, label);
+    addLog('🎲 <span class="log-highlight">d20 Advantage</span>: [' + r1 + ', ' + r2 + '] → <span class="log-highlight">' + total + '</span>' + label, 'roll');
+    return total;
+  }
+  
+  for (let i = 0; i < qty; i++) rolls.push(rollSingleDie(sides));
+  const sum = rolls.reduce((a, b) => a + b, 0);
+  const total = sum + mod;
+  const modStr = mod >= 0 ? '+' + mod : String(mod);
+  const isNat20 = sides === 20 && qty === 1 && rolls[0] === 20;
+  const isNat1 = sides === 20 && qty === 1 && rolls[0] === 1;
+  const cls = isNat20 ? 'roll-nat20' : (isNat1 ? 'roll-nat1' : '');
+  const label = isNat20 ? ' NAT 20!' : (isNat1 ? ' NAT 1!' : '');
+  const diceStr = qty + 'd' + sides;
+  const detailStr = (qty > 1 ? '[' + rolls.join(', ') + ']=' + sum : String(rolls[0])) + (mod !== 0 ? modStr : '');
+  addDiceResult(diceStr, detailStr, total, cls, label);
+  addLog('🎲 <span class="log-highlight">' + diceStr + (mod !== 0 ? modStr : '') + '</span>: ' + (qty > 1 ? '[' + rolls.join(', ') + ']' : rolls[0]) + ' = <span class="log-highlight">' + total + '</span>' + label, 'roll');
+  return total;
+}
+function addDiceResult(dice, detail, total, cls, label) {
+  const el = document.getElementById('dice-results');
+  if (!el) return;
+  if (el.querySelector('div[style]')) el.innerHTML = '';
+  const item = document.createElement('div');
+  item.className = 'dice-result-item';
+  item.innerHTML = '<span><strong>' + dice + '</strong> <span class="roll-detail">' + detail + '</span></span><span class="roll-total ' + cls + '">' + total + (label || '') + '</span>';
+  el.insertBefore(item, el.firstChild);
+  while (el.children.length > MAX_DICE_RESULTS) el.removeChild(el.lastChild);
+}
+function rollCustomDice() {
+  const input = document.getElementById('dice-custom')?.value?.trim();
+  if (!input) { toast('Enter dice notation like 2d6+3'); return; }
+  const regex = /(\d*)d(\d+)([+-]\d+)?/gi;
+  let match;
+  let totalAll = 0;
+  let found = false;
+  while ((match = regex.exec(input)) !== null) {
+    found = true;
+    const qty = parseInt(match[1]) || 1;
+    const sides = parseInt(match[2]);
+    const mod = parseInt(match[3]) || 0;
+    if (sides < 1 || sides > MAX_DICE_SIDES || qty < 1 || qty > MAX_DICE_QTY) { toast('Invalid dice: 1-' + MAX_DICE_QTY + ' dice with 1-' + MAX_DICE_SIDES + ' sides each'); return; }
+    const oldQty = document.getElementById('dice-qty').value;
+    const oldMod = document.getElementById('dice-mod').value;
+    document.getElementById('dice-qty').value = qty;
+    document.getElementById('dice-mod').value = mod;
+    const result = rollDice(sides);
+    document.getElementById('dice-qty').value = oldQty;
+    document.getElementById('dice-mod').value = oldMod;
+    totalAll += result;
+  }
+  if (!found) toast('Invalid notation. Try d20, 2d6+3, or 4d8-1');
+}
+
+// ── Token System ──
+const TOKEN_TYPES = {
+  pc:      { label: 'Hero',    fill: '#1a3a2a', stroke: '#22c55e', tc: '#22c55e', emoji: '⚔️' },
+  npc:     { label: 'NPC',     fill: '#1a2a3a', stroke: '#3b82f6', tc: '#3b82f6', emoji: '👤' },
+  monster: { label: 'Monster', fill: '#3a1a1a', stroke: '#ef4444', tc: '#ef4444', emoji: '👹' },
+  boss:    { label: 'Boss',    fill: '#3a2a1a', stroke: '#f59e0b', tc: '#f59e0b', emoji: '💀' },
+  object:  { label: 'Object',  fill: '#2a2a2a', stroke: '#6b7280', tc: '#6b7280', emoji: '📦' },
+  spell:   { label: 'Spell',   fill: '#2a1a3a', stroke: '#a855f7', tc: '#a855f7', emoji: '✨' }
+};
+function addToken(type) {
+  const tt = TOKEN_TYPES[type] || TOKEN_TYPES.pc;
+  const r = document.getElementById('cw').getBoundingClientRect();
+  const c = s2c(r.left + r.width/2, r.top + r.height/2);
+  const size = 48;
+  const n = mkNode({
+    shape: 'token',
+    label: tt.label,
+    x: c.x - size/2,
+    y: c.y - size/2,
+    w: size, h: size,
+    fill: tt.fill,
+    stroke: tt.stroke,
+    tc: tt.tc,
+    bw: 3,
+    fs: 16,
+    tokenType: type,
+    tokenHP: 10,
+    tokenMaxHP: 10,
+    tokenAC: 10,
+    tokenInit: 0,
+    tokenEmoji: tt.emoji,
+    charSheet: null
+  });
+  clearSel(); addSel(n.id); updateProps();
+  addLog(tt.emoji + ' <span class="log-highlight">' + tt.label + '</span> token placed on the map', 'system');
+  updateInitList();
+}
+
+// ── Initiative Tracker ──
+let initOrder = [];
+let initCurrent = -1;
+
+function getTokenNodes() {
+  return Object.values(nodes).filter(n => n.shape === 'token');
+}
+function rollAllInitiative() {
+  const tokens = getTokenNodes();
+  if (!tokens.length) { toast('Add tokens first'); return; }
+  tokens.forEach(t => {
+    const initMod = t.tokenInit || 0;
+    const roll = rollSingleDie(20);
+    t.tokenInitRoll = roll + initMod;
+    addLog('🎲 <span class="log-highlight">' + t.label + '</span> initiative: ' + roll + (initMod >= 0 ? '+' : '') + initMod + ' = <span class="log-highlight">' + t.tokenInitRoll + '</span>', 'roll');
+  });
+  initOrder = tokens.map(t => t.id).sort((a, b) => (nodes[b]?.tokenInitRoll || 0) - (nodes[a]?.tokenInitRoll || 0));
+  initCurrent = 0;
+  updateInitList();
+  toast('Initiative rolled!');
+  addLog('⚔️ <span class="log-highlight">Combat begins!</span> ' + (nodes[initOrder[0]]?.label || 'First token') + ' goes first.', 'combat');
+}
+function nextTurn() {
+  if (!initOrder.length) { toast('Roll initiative first'); return; }
+  initCurrent = (initCurrent + 1) % initOrder.length;
+  const current = nodes[initOrder[initCurrent]];
+  updateInitList();
+  if (current) {
+    addLog('▶ <span class="log-highlight">' + current.label + '</span>\'s turn', 'combat');
+    panToNode(current);
+    clearSel(); addSel(current.id); updateProps();
+  }
+}
+function prevTurn() {
+  if (!initOrder.length) { toast('Roll initiative first'); return; }
+  initCurrent = (initCurrent - 1 + initOrder.length) % initOrder.length;
+  const current = nodes[initOrder[initCurrent]];
+  updateInitList();
+  if (current) {
+    addLog('◀ Back to <span class="log-highlight">' + current.label + '</span>\'s turn', 'combat');
+  }
+}
+function resetInitiative() {
+  initOrder = [];
+  initCurrent = -1;
+  getTokenNodes().forEach(t => { t.tokenInitRoll = 0; });
+  updateInitList();
+  addLog('🔄 Initiative reset', 'system');
+}
+function updateInitList() {
+  const el = document.getElementById('init-list');
+  if (!el) return;
+  const tokens = getTokenNodes();
+  if (!tokens.length) {
+    el.innerHTML = '<div style="color:var(--t3);font-size:10px;text-align:center;padding:8px">Add tokens and roll initiative</div>';
+    return;
+  }
+  const sorted = [...tokens].sort((a, b) => (b.tokenInitRoll || 0) - (a.tokenInitRoll || 0));
+  el.innerHTML = sorted.map(t => {
+    const isActive = initOrder.length > 0 && initOrder[initCurrent] === t.id;
+    return '<div class="init-item' + (isActive ? ' active' : '') + '" onclick="panToToken(\'' + t.id + '\')">' +
+      '<div class="init-dot" style="background:' + t.stroke + '"></div>' +
+      '<span class="init-name">' + xe(t.label) + '</span>' +
+      '<span class="init-val">' + (t.tokenInitRoll || '-') + '</span>' +
+    '</div>';
+  }).join('');
+}
+function panToNode(n) {
+  const r = document.getElementById('cw').getBoundingClientRect();
+  panX = r.width/2 - (n.x + n.w/2) * zoom;
+  panY = r.height/2 - (n.y + n.h/2) * zoom;
+  applyTx();
+}
+function panToToken(id) {
+  const n = nodes[id];
+  if (!n) return;
+  panToNode(n);
+  clearSel(); addSel(n.id); updateProps();
+}
+
+// ── Character Sheet ──
+function skillKey(name) {
+  return 'skill_' + name.toLowerCase().replace(/\s+/g, '_');
+}
+
+let activeCharSheetId = null;
+const DND_SKILLS = [
+  ['Acrobatics', 'dex'], ['Animal Handling', 'wis'], ['Arcana', 'int'],
+  ['Athletics', 'str'], ['Deception', 'cha'], ['History', 'int'],
+  ['Insight', 'wis'], ['Intimidation', 'cha'], ['Investigation', 'int'],
+  ['Medicine', 'wis'], ['Nature', 'int'], ['Perception', 'wis'],
+  ['Performance', 'cha'], ['Persuasion', 'cha'], ['Religion', 'int'],
+  ['Sleight of Hand', 'dex'], ['Stealth', 'dex'], ['Survival', 'wis']
+];
+
+function abilityMod(score) {
+  return Math.floor((score - 10) / 2);
+}
+function modStr(mod) {
+  return mod >= 0 ? '+' + mod : String(mod);
+}
+function openSelectedCharSheet() {
+  if (selIds.size === 1) {
+    const id = [...selIds][0];
+    if (nodes[id]?.shape === 'token') openCharSheet(id);
+    else toast('Select a token first');
+  } else toast('Select a token first');
+}
+function openCharSheet(nodeId) {
+  const n = nodes[nodeId];
+  if (!n) return;
+  activeCharSheetId = nodeId;
+  const cs = n.charSheet || {};
+  document.getElementById('cs-name').value = cs.name || n.label || '';
+  document.getElementById('cs-class').value = cs.classInfo || '';
+  ['str','dex','con','int','wis','cha'].forEach(ab => {
+    document.getElementById('cs-' + ab).value = cs[ab] || 10;
+  });
+  document.getElementById('cs-hp').value = cs.hp ?? n.tokenHP ?? 10;
+  document.getElementById('cs-maxhp').value = cs.maxhp ?? n.tokenMaxHP ?? 10;
+  document.getElementById('cs-temphp').value = cs.temphp || 0;
+  document.getElementById('cs-ac').value = cs.ac ?? n.tokenAC ?? 10;
+  document.getElementById('cs-init').value = cs.init ?? n.tokenInit ?? 0;
+  document.getElementById('cs-speed').value = cs.speed || '30 ft.';
+  document.getElementById('cs-prof').value = cs.prof || 2;
+  document.getElementById('cs-hitdice').value = cs.hitdice || '1d10';
+  document.getElementById('cs-level').value = cs.level || 1;
+  document.getElementById('cs-xp').value = cs.xp || 0;
+  document.getElementById('cs-features').value = cs.features || '';
+  document.getElementById('cs-equipment').value = cs.equipment || '';
+  document.getElementById('cs-notes').value = cs.notes || '';
+  ['str','dex','con','int','wis','cha'].forEach(ab => {
+    const chk = document.getElementById('cs-save-' + ab);
+    if (chk) chk.checked = cs['save_' + ab] || false;
+  });
+  const grid = document.getElementById('cs-skills-grid');
+  if (grid) {
+    grid.innerHTML = DND_SKILLS.map(([name, ab]) => {
+      const key = skillKey(name);      return '<div class="cs-skill-item">' +
+        '<input type="checkbox" id="cs-' + key + '"' + (cs[key] ? ' checked' : '') + '>' +
+        '<span style="flex:1">' + name + ' <span style="color:var(--t3)">(' + ab.toUpperCase() + ')</span></span>' +
+        '<span class="cs-skill-bonus" id="cs-' + key + '-val">+0</span></div>';
+    }).join('');
+  }
+  updateCharSheet();
+  document.getElementById('charsheet-modal').classList.add('open');
+}
+function closeCharSheet() {
+  document.getElementById('charsheet-modal').classList.remove('open');
+  activeCharSheetId = null;
+}
+function updateCharSheet() {
+  const prof = parseInt(document.getElementById('cs-prof')?.value) || 2;
+  ['str','dex','con','int','wis','cha'].forEach(ab => {
+    const val = parseInt(document.getElementById('cs-' + ab)?.value) || 10;
+    const mod = abilityMod(val);
+    const modEl = document.getElementById('cs-' + ab + '-mod');
+    if (modEl) modEl.textContent = modStr(mod);
+    const saveChk = document.getElementById('cs-save-' + ab);
+    const saveVal = document.getElementById('cs-save-' + ab + '-val');
+    if (saveVal) saveVal.textContent = modStr(mod + (saveChk?.checked ? prof : 0));
+  });
+  DND_SKILLS.forEach(([name, ab]) => {
+    const key = skillKey(name);
+    const chk = document.getElementById('cs-' + key);
+    const valEl = document.getElementById('cs-' + key + '-val');
+    const abVal = parseInt(document.getElementById('cs-' + ab)?.value) || 10;
+    const mod = abilityMod(abVal);
+    if (valEl) valEl.textContent = modStr(mod + (chk?.checked ? prof : 0));
+  });
+}
+function applyCharSheet() {
+  if (!activeCharSheetId || !nodes[activeCharSheetId]) { closeCharSheet(); return; }
+  const n = nodes[activeCharSheetId];
+  const cs = {};
+  cs.name = document.getElementById('cs-name')?.value || '';
+  cs.classInfo = document.getElementById('cs-class')?.value || '';
+  ['str','dex','con','int','wis','cha'].forEach(ab => {
+    cs[ab] = parseInt(document.getElementById('cs-' + ab)?.value) || 10;
+  });
+  cs.hp = parseInt(document.getElementById('cs-hp')?.value) || 10;
+  cs.maxhp = parseInt(document.getElementById('cs-maxhp')?.value) || 10;
+  cs.temphp = parseInt(document.getElementById('cs-temphp')?.value) || 0;
+  cs.ac = parseInt(document.getElementById('cs-ac')?.value) || 10;
+  cs.init = parseInt(document.getElementById('cs-init')?.value) || 0;
+  cs.speed = document.getElementById('cs-speed')?.value || '30 ft.';
+  cs.prof = parseInt(document.getElementById('cs-prof')?.value) || 2;
+  cs.hitdice = document.getElementById('cs-hitdice')?.value || '1d10';
+  cs.level = parseInt(document.getElementById('cs-level')?.value) || 1;
+  cs.xp = parseInt(document.getElementById('cs-xp')?.value) || 0;
+  cs.features = document.getElementById('cs-features')?.value || '';
+  cs.equipment = document.getElementById('cs-equipment')?.value || '';
+  cs.notes = document.getElementById('cs-notes')?.value || '';
+  ['str','dex','con','int','wis','cha'].forEach(ab => {
+    cs['save_' + ab] = document.getElementById('cs-save-' + ab)?.checked || false;
+  });
+  DND_SKILLS.forEach(([name]) => {
+    const key = skillKey(name);
+    cs[key] = document.getElementById('cs-' + key)?.checked || false;
+  });
+  n.charSheet = cs;
+  n.label = cs.name || n.label;
+  n.tokenHP = cs.hp;
+  n.tokenMaxHP = cs.maxhp;
+  n.tokenAC = cs.ac;
+  n.tokenInit = cs.init;
+  renderNode(n);
+  updateInitList();
+  closeCharSheet();
+  toast('Character sheet applied to ' + n.label);
+  addLog('📋 <span class="log-highlight">' + n.label + '</span> character sheet updated', 'system');
+}
+
+// ── Keyboard shortcuts for RPG ──
+document.addEventListener('keydown', function(e) {
+  const t = e.target.tagName;
+  if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+  if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault();
+    rollDice(20);
+  }
+  if (e.key === 'i' || e.key === 'I') {
+    if (!e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      const panel = document.querySelector('#init-panel')?.closest('.ph-collapsible');
+      const toggle = panel?.previousElementSibling;
+      if (toggle && toggle.classList.contains('collapsed')) toggle.click();
+    }
+  }
+});
 
 </script>
 
