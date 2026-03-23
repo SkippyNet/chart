@@ -4686,7 +4686,7 @@ function rollCustomDice() {
     const qty = parseInt(match[1]) || 1;
     const sides = parseInt(match[2]);
     const mod = parseInt(match[3]) || 0;
-    if (sides < 1 || sides > 1000 || qty < 1 || qty > 100) { toast('Invalid dice'); return; }
+    if (sides < 1 || sides > 1000 || qty < 1 || qty > 100) { toast('Dice: 1-1000 sides, 1-100 qty'); return; }
     const oldQty = document.getElementById('dice-qty').value;
     const oldMod = document.getElementById('dice-mod').value;
     document.getElementById('dice-qty').value = qty;
@@ -4757,7 +4757,7 @@ function rollAllInitiative() {
   initCurrent = 0;
   updateInitList();
   toast('Initiative rolled!');
-  addLog('⚔️ <span class="log-highlight">Combat begins!</span> ' + nodes[initOrder[0]]?.label + ' goes first.', 'combat');
+  addLog('⚔️ <span class="log-highlight">Combat begins!</span> ' + (nodes[initOrder[0]]?.label || 'First token') + ' goes first.', 'combat');
 }
 function nextTurn() {
   if (!initOrder.length) { toast('Roll initiative first'); return; }
