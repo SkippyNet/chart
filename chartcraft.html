@@ -4597,6 +4597,11 @@ function clearWaypoints(){
 // ═══════════════════════════════════════════════════════
 
 // ── Game Log ──
+const MAX_LOG_ENTRIES = 100;
+const MAX_DICE_RESULTS = 20;
+const MAX_DICE_SIDES = 1000;
+const MAX_DICE_QTY = 100;
+
 const gameLog = [];
 function addLog(msg, type='system') {
   const now = new Date();
@@ -4609,7 +4614,7 @@ function addLog(msg, type='system') {
   entry.innerHTML = '<span class="log-time">' + time + '</span> ' + msg;
   el.appendChild(entry);
   el.scrollTop = el.scrollHeight;
-  while (el.children.length > 100) el.removeChild(el.firstChild);
+  while (el.children.length > MAX_LOG_ENTRIES) el.removeChild(el.firstChild);
 }
 function addLogNote() {
   const inp = document.getElementById('log-input');
@@ -4672,7 +4677,7 @@ function addDiceResult(dice, detail, total, cls, label) {
   item.className = 'dice-result-item';
   item.innerHTML = '<span><strong>' + dice + '</strong> <span class="roll-detail">' + detail + '</span></span><span class="roll-total ' + cls + '">' + total + (label || '') + '</span>';
   el.insertBefore(item, el.firstChild);
-  while (el.children.length > 20) el.removeChild(el.lastChild);
+  while (el.children.length > MAX_DICE_RESULTS) el.removeChild(el.lastChild);
 }
 function rollCustomDice() {
   const input = document.getElementById('dice-custom')?.value?.trim();
@@ -4686,7 +4691,7 @@ function rollCustomDice() {
     const qty = parseInt(match[1]) || 1;
     const sides = parseInt(match[2]);
     const mod = parseInt(match[3]) || 0;
-    if (sides < 1 || sides > 1000 || qty < 1 || qty > 100) { toast('Invalid dice: 1-100 dice with 1-1000 sides each'); return; }
+    if (sides < 1 || sides > MAX_DICE_SIDES || qty < 1 || qty > MAX_DICE_QTY) { toast('Invalid dice: 1-' + MAX_DICE_QTY + ' dice with 1-' + MAX_DICE_SIDES + ' sides each'); return; }
     const oldQty = document.getElementById('dice-qty').value;
     const oldMod = document.getElementById('dice-mod').value;
     document.getElementById('dice-qty').value = qty;
@@ -4766,10 +4771,7 @@ function nextTurn() {
   updateInitList();
   if (current) {
     addLog('▶ <span class="log-highlight">' + current.label + '</span>\'s turn', 'combat');
-    const r = document.getElementById('cw').getBoundingClientRect();
-    panX = r.width/2 - (current.x + current.w/2) * zoom;
-    panY = r.height/2 - (current.y + current.h/2) * zoom;
-    applyTx();
+    panToNode(current);
     clearSel(); addSel(current.id); updateProps();
   }
 }
@@ -4807,17 +4809,24 @@ function updateInitList() {
     '</div>';
   }).join('');
 }
-function panToToken(id) {
-  const n = nodes[id];
-  if (!n) return;
+function panToNode(n) {
   const r = document.getElementById('cw').getBoundingClientRect();
   panX = r.width/2 - (n.x + n.w/2) * zoom;
   panY = r.height/2 - (n.y + n.h/2) * zoom;
   applyTx();
+}
+function panToToken(id) {
+  const n = nodes[id];
+  if (!n) return;
+  panToNode(n);
   clearSel(); addSel(n.id); updateProps();
 }
 
 // ── Character Sheet ──
+function skillKey(name) {
+  return 'skill_' + name.toLowerCase().replace(/\s+/g, '_');
+}
+
 let activeCharSheetId = null;
 const DND_SKILLS = [
   ['Acrobatics', 'dex'], ['Animal Handling', 'wis'], ['Arcana', 'int'],
@@ -4871,8 +4880,7 @@ function openCharSheet(nodeId) {
   const grid = document.getElementById('cs-skills-grid');
   if (grid) {
     grid.innerHTML = DND_SKILLS.map(([name, ab]) => {
-      const key = 'skill_' + name.toLowerCase().replace(/\s+/g, '_');
-      return '<div class="cs-skill-item">' +
+      const key = skillKey(name);      return '<div class="cs-skill-item">' +
         '<input type="checkbox" id="cs-' + key + '"' + (cs[key] ? ' checked' : '') + '>' +
         '<span style="flex:1">' + name + ' <span style="color:var(--t3)">(' + ab.toUpperCase() + ')</span></span>' +
         '<span class="cs-skill-bonus" id="cs-' + key + '-val">+0</span></div>';
@@ -4897,7 +4905,7 @@ function updateCharSheet() {
     if (saveVal) saveVal.textContent = modStr(mod + (saveChk?.checked ? prof : 0));
   });
   DND_SKILLS.forEach(([name, ab]) => {
-    const key = 'skill_' + name.toLowerCase().replace(/\s+/g, '_');
+    const key = skillKey(name);
     const chk = document.getElementById('cs-' + key);
     const valEl = document.getElementById('cs-' + key + '-val');
     const abVal = parseInt(document.getElementById('cs-' + ab)?.value) || 10;
@@ -4931,7 +4939,7 @@ function applyCharSheet() {
     cs['save_' + ab] = document.getElementById('cs-save-' + ab)?.checked || false;
   });
   DND_SKILLS.forEach(([name]) => {
-    const key = 'skill_' + name.toLowerCase().replace(/\s+/g, '_');
+    const key = skillKey(name);
     cs[key] = document.getElementById('cs-' + key)?.checked || false;
   });
   n.charSheet = cs;
