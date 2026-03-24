@@ -1,0 +1,621 @@
+/* QuestBoard D&D 5e - Roll20 Character Sheet Styles */
+/* Migrated from chartcraft.html, adapted for Roll20 constraints */
+/* No CSS variables, no @import, no external fonts */
+
+/* ── Roll Templates ── */
+.sheet-rolltemplate-qbcheck .qb-roll,
+.sheet-rolltemplate-qbattack .qb-roll {
+    background: #1a1d27;
+    border: 1px solid #333;
+    border-left: 4px solid #6366f1;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 2px 0;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #e2e8f0;
+}
+
+.sheet-rolltemplate-qbcheck .qb-roll-header,
+.sheet-rolltemplate-qbattack .qb-roll-header {
+    font-size: 14px;
+    font-weight: 700;
+    color: #6366f1;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sheet-rolltemplate-qbcheck .qb-roll-label,
+.sheet-rolltemplate-qbattack .qb-roll-label {
+    font-size: 10px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 6px;
+}
+
+.sheet-rolltemplate-qbcheck .qb-roll-result,
+.sheet-rolltemplate-qbattack .qb-roll-result {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f1f5f9;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.sheet-rolltemplate-qbcheck .qb-crit,
+.sheet-rolltemplate-qbattack .qb-crit {
+    color: #22c55e;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sheet-rolltemplate-qbcheck .qb-fumble,
+.sheet-rolltemplate-qbattack .qb-fumble {
+    color: #ef4444;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sheet-rolltemplate-qbcheck .qb-roll-desc,
+.sheet-rolltemplate-qbattack .qb-roll-desc {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* ── Sheet Type Toggle ── */
+.sheet-type-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #333;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.sheet-type-radio {
+    accent-color: #6366f1;
+}
+
+/* PC/NPC visibility */
+.sheet-pc { display: block; }
+.sheet-npc { display: none; }
+
+input.sheet-type-radio[value="npc"]:checked ~ .sheet-pc { display: none; }
+input.sheet-type-radio[value="npc"]:checked ~ .sheet-npc { display: block; }
+input.sheet-type-radio[value="pc"]:checked ~ .sheet-pc { display: block; }
+input.sheet-type-radio[value="pc"]:checked ~ .sheet-npc { display: none; }
+
+/* ── Tab Navigation ── */
+.sheet-tab-radio {
+    display: none;
+}
+
+.sheet-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #333;
+    margin-bottom: 12px;
+    padding: 0 8px;
+}
+
+.sheet-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #94a3b8;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    cursor: pointer;
+    margin-bottom: -2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sheet-tab:hover {
+    color: #e2e8f0;
+    border-bottom-color: #6366f1;
+}
+
+/* Tab content visibility */
+.sheet-tab-content { display: none; }
+.sheet-tab-main { display: block; }
+
+input.sheet-tab-radio[value="main"]:checked ~ .sheet-pc .sheet-tab-main { display: block; }
+input.sheet-tab-radio[value="main"]:checked ~ .sheet-pc .sheet-tab-bio { display: none; }
+input.sheet-tab-radio[value="main"]:checked ~ .sheet-pc .sheet-tab-spells { display: none; }
+
+input.sheet-tab-radio[value="bio"]:checked ~ .sheet-pc .sheet-tab-main { display: none; }
+input.sheet-tab-radio[value="bio"]:checked ~ .sheet-pc .sheet-tab-bio { display: block; }
+input.sheet-tab-radio[value="bio"]:checked ~ .sheet-pc .sheet-tab-spells { display: none; }
+
+input.sheet-tab-radio[value="spells"]:checked ~ .sheet-pc .sheet-tab-main { display: none; }
+input.sheet-tab-radio[value="spells"]:checked ~ .sheet-pc .sheet-tab-bio { display: none; }
+input.sheet-tab-radio[value="spells"]:checked ~ .sheet-pc .sheet-tab-spells { display: block; }
+
+/* ── General Layout ── */
+.charsheet {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #e2e8f0;
+    padding: 8px;
+}
+
+.sheet-header {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #333;
+}
+
+.sheet-field {
+    flex: 1;
+    margin-bottom: 6px;
+}
+
+.sheet-field-wide {
+    flex: 2;
+}
+
+.sheet-field label {
+    display: block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 3px;
+}
+
+.sheet-field input,
+.sheet-field select,
+.sheet-field textarea {
+    width: 100%;
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.sheet-field input:focus,
+.sheet-field select:focus,
+.sheet-field textarea:focus {
+    border-color: #6366f1;
+    outline: none;
+}
+
+.sheet-field input[type="number"] {
+    width: 60px;
+    text-align: center;
+}
+
+textarea[name="attr_notes"] {
+    width: 100%;
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+/* ── Sections ── */
+.sheet-section {
+    margin-bottom: 14px;
+}
+
+.sheet-section-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #333;
+}
+
+/* ── Ability Scores ── */
+.sheet-ability-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.sheet-ability {
+    background: #22263a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+}
+
+.sheet-ability-name {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 2px;
+}
+
+.sheet-ability input[type="number"] {
+    width: 50px;
+    background: transparent;
+    border: none;
+    text-align: center;
+    color: #e2e8f0;
+    font-size: 20px;
+    font-weight: 700;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.sheet-ability-mod {
+    font-size: 11px;
+    color: #6366f1;
+    font-weight: 600;
+}
+
+.sheet-ability button[type="roll"] {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.sheet-ability button[type="roll"]:hover {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+/* ── Combat Stats ── */
+.sheet-combat-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+/* ── Saving Throws ── */
+.sheet-saves-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+.sheet-save-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #e2e8f0;
+    padding: 3px 6px;
+    background: #22263a;
+    border-radius: 4px;
+}
+
+.sheet-save-item input[type="checkbox"] {
+    accent-color: #6366f1;
+}
+
+.sheet-save-item button[type="roll"] {
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    flex: 1;
+    text-align: left;
+}
+
+.sheet-save-item button[type="roll"]:hover {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+.sheet-save-val {
+    color: #6366f1;
+    font-weight: 600;
+    font-family: 'Courier New', Courier, monospace;
+    margin-left: auto;
+}
+
+/* ── Skills ── */
+.sheet-skills-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+}
+
+.sheet-skill-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #e2e8f0;
+    padding: 2px 4px;
+}
+
+.sheet-skill-item input[type="checkbox"] {
+    accent-color: #6366f1;
+    width: 12px;
+    height: 12px;
+}
+
+.sheet-skill-item button[type="roll"] {
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    flex: 1;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sheet-skill-item button[type="roll"]:hover {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+.sheet-skill-ability {
+    color: #94a3b8;
+    font-size: 9px;
+}
+
+.sheet-skill-val {
+    color: #6366f1;
+    font-weight: 600;
+    font-family: 'Courier New', Courier, monospace;
+    min-width: 20px;
+    text-align: right;
+    margin-left: auto;
+}
+
+/* ── Attacks (Repeating) ── */
+.sheet-attack-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px 0;
+    flex-wrap: wrap;
+}
+
+.sheet-attack-row input[type="text"] {
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    flex: 2;
+}
+
+.sheet-attack-row button[type="roll"] {
+    background: #6366f1;
+    border: none;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.sheet-attack-row button[type="roll"]:hover {
+    background: #4f46e5;
+}
+
+.sheet-small-input {
+    width: 50px !important;
+    flex: 0 0 50px !important;
+    text-align: center;
+}
+
+.sheet-medium-input {
+    width: 90px !important;
+    flex: 0 0 90px !important;
+}
+
+/* ── Features (Repeating) ── */
+.sheet-feature-row {
+    padding: 6px 0;
+    border-bottom: 1px solid #2a2d3a;
+}
+
+.sheet-feature-name {
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 3px;
+    width: 100%;
+    margin-bottom: 4px;
+    box-sizing: border-box;
+}
+
+.sheet-feature-row textarea {
+    width: 100%;
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+/* ── Inventory (Repeating) ── */
+.sheet-inventory-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px 0;
+    flex-wrap: wrap;
+}
+
+.sheet-inventory-row input[type="text"],
+.sheet-inventory-row input[type="number"] {
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 3px;
+}
+
+.sheet-inventory-row input[type="text"] {
+    flex: 2;
+}
+
+.sheet-inventory-row textarea {
+    flex: 3;
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 3px;
+}
+
+/* ── Currency ── */
+.sheet-currency-row {
+    display: flex;
+    gap: 8px;
+}
+
+.sheet-currency-row .sheet-field {
+    flex: 1;
+    text-align: center;
+}
+
+.sheet-currency-row input[type="number"] {
+    width: 100%;
+    text-align: center;
+}
+
+/* ── Spells Tab ── */
+.sheet-spell-slots {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.sheet-spell-slots .sheet-field {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.sheet-spell-slots input[type="number"] {
+    width: 35px;
+    text-align: center;
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 12px;
+    padding: 4px;
+    border-radius: 3px;
+}
+
+.sheet-spell-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px 0;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #2a2d3a;
+}
+
+.sheet-spell-row input[type="text"],
+.sheet-spell-row select {
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 3px;
+}
+
+.sheet-spell-row input[type="text"] {
+    flex: 2;
+}
+
+.sheet-spell-row textarea {
+    flex: 3;
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 3px;
+}
+
+.sheet-spell-row button[type="roll"] {
+    background: #a855f7;
+    border: none;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.sheet-spell-row button[type="roll"]:hover {
+    background: #9333ea;
+}
+
+/* ── NPC Sheet ── */
+.sheet-npc .sheet-section-title {
+    color: #ef4444;
+    border-bottom-color: #ef4444;
+}
+
+.sheet-npc textarea {
+    width: 100%;
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+/* ── Personality Section ── */
+.sheet-tab-bio .sheet-field textarea {
+    width: 100%;
+    background: #22263a;
+    border: 1px solid #333;
+    color: #e2e8f0;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    box-sizing: border-box;
+}

@@ -1,0 +1,9 @@
+{
+    "html": "sheet.html",
+    "css": "sheet.css",
+    "authors": "QuestBoard",
+    "roll20userid": "",
+    "preview": "preview.png",
+    "instructions": "QuestBoard D&D 5e character sheet for Roll20. Supports ability scores, skills, saving throws, combat stats, repeating attacks, inventory, features, and spells. Includes roll buttons for all checks with advantage/disadvantage support, initiative integration with Roll20's turn tracker, and token bar linking for HP/AC.",
+    "legacy": false
+}
